@@ -1,0 +1,13 @@
+{
+    "presets": [
+        ["env", {
+            "modules": false,
+            "targets": {
+                "browsers": ["last 3 Chrome versions", "last 3 Firefox versions"]
+            }
+        }],
+        "stage-2"
+    ],
+    "plugins": ["transform-runtime"],
+    "comments": true
+}

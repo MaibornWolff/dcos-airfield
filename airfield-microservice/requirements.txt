@@ -1,0 +1,14 @@
+apscheduler
+consul_kv==0.7.2
+deepmerge
+exrex
+flask
+flask_api
+flask_cors
+flask-log-request-id
+Flask-OIDC
+gunicorn
+jwt
+marshmallow
+prometheus_client
+requests

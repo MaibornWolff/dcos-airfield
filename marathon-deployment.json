@@ -1,0 +1,39 @@
+{
+  "id": "airfield",
+  "instances": 1,
+  "cpus": 2,
+  "mem": 2048,
+  "container": {
+  "type": "MESOS",
+  "portMappings": [
+    {"containerPort": 5000}
+  ],
+  "docker": {
+        "image": "maibornwolff/airfield:latest",
+        "forcePullImage": true
+      }
+  },
+  "networks": [{
+    "name": "dcos",
+    "mode": "container"
+  }],
+  "healthChecks": [{
+      "protocol": "MESOS_HTTP",
+      "path": "/",
+      "portIndex": 0,
+      "timeoutSeconds": 10,
+      "gracePeriodSeconds": 10,
+      "intervalSeconds": 20,
+      "maxConsecutiveFailures": 10
+  }],
+  "labels":{
+    "HAPROXY_GROUP": "external",
+    "HAPROXY_0_VHOST": ""
+  },
+  "env": {
+      "AIRFIELD_BASE_HOST" : "",
+      "DCOS_SERVICE_ACCOUNT_CREDENTIAL": ""
+      // "DCOS_USERNAME": "",
+      // "DCOS_PASSWORD": ""
+  }
+}

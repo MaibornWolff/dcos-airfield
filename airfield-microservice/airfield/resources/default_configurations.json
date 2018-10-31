@@ -1,0 +1,88 @@
+[
+  {
+    "id": 1,
+    "title": "Small",
+    "tags": ["Small", "No Libs"],
+    "icon": "small",
+    "comment": "",
+    "configuration": {
+      "id": "",
+      "instances": 1,
+      "cpus": 2,
+      "mem": 8192,
+      "env": {
+        "SPARK_CORES_MAX": "2",
+        "SPARK_EXECUTOR_MEMORY": "2g",
+        "PYSPARK_PYTHON": "python3"
+      },
+      "libraries": [
+        {
+          "language": "Python",
+          "tensorflow": false,
+          "libraries": []
+        },
+        {
+          "language": "R",
+          "libraries": []
+        }
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "title": "Medium",
+    "tags": ["Medium", "No Libs"],
+    "icon": "medium",
+    "comment": "",
+    "configuration": {
+      "id": "",
+      "instances": 1,
+      "cpus": 4,
+      "mem": 32768,
+      "env": {
+        "SPARK_CORES_MAX": "4",
+        "SPARK_EXECUTOR_MEMORY": "8g",
+        "PYSPARK_PYTHON": "python3"
+      },
+      "libraries": [
+        {
+          "language": "Python",
+          "libraries": []
+        },
+        {
+          "language": "R",
+          "libraries": []
+        }
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "title": "Large",
+    "tags": ["Large", "No Libs"],
+    "icon": "large",
+    "comment": "",
+    "configuration": {
+      "id": "",
+      "instances": 1,
+      "cpus": 4,
+      "mem": 32768,
+      "env": {
+        "SPARK_CORES_MAX": "8",
+        "SPARK_EXECUTOR_MEMORY": "16g",
+        "PYSPARK_PYTHON": "python3"
+      },
+      "libraries": [
+        {
+          "language": "Python",
+          "tensorflow": false,
+          "libraries": []
+        },
+        {
+          "language": "R",
+          "libraries": []
+        }
+      ]
+    }
+  }
+]
