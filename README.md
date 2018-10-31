@@ -1,5 +1,5 @@
-# DC/OS Airfield
-DC/OS Airfield is an open source tool for the DC/OS ecosystem that enables teams to easily collaborate with shared Zeppelin instances.
+# Airfield
+Airfield is an open source tool for the DC/OS ecosystem that enables teams to easily collaborate with shared Zeppelin instances.
 
 The application consists of a micro service written in Flask and a User Interface written in Vue. It was developed and is being maintained by [MaibornWolff](https://www.maibornwolff.de/).
 
@@ -22,7 +22,8 @@ The application consists of a micro service written in Flask and a User Interfac
 5. [Roadmap](#roadmap)
 
 #### Version
-DC/OS Airfield is in beta version 0.1b
+Airfield is in beta version 0.1b
+
 #### License
 Apache License Version 2.0
 
