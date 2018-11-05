@@ -93,9 +93,6 @@
         },
 
         methods: {
-            loadToken() {
-                this.$store.dispatch('LOAD_SECURITY_TOKEN');
-            },
             async loadExistingInstances(forceReload = false) {
                 if (!forceReload) {
                     this.isLoading = true;
