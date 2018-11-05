@@ -19,9 +19,9 @@
     @import "~@/assets/styles/variables";
 
     .airfieldLogo {
-        width: 32px;
+        width: 44px;
         display: inline-block;
-        margin-right: 10px;
+        margin: -8px 10px -6px 0;
         vertical-align: text-bottom;
     }
 

@@ -1,3 +1,5 @@
+<p align="center"><img src="img/airfield_logo.png" alt="Airfield" width="128"></p>
+
 # Airfield
 Airfield is an open source tool for the DC/OS ecosystem that enables teams to easily collaborate with shared Zeppelin instances.
 
@@ -62,10 +64,13 @@ dcos marathon app add marathon-deployment.json
 Airfield has a simple user interface that allows to interact with existing Zeppelin instances or create new instances with custom options.
 ### Create new Zeppelin Instance
 Click on the 'Add Instance' button in the main screen to reach the screen depicted below.
+
 ![Airfield New Instance Screen](img/airfield_new.png)
+
 Simply select the desired instance type to load its default configuration. You can edit general settings, the spark configuration and specify additional packages to be installed.
 ### Interact with a running Zeppelin Instance
 ![Airfield Main Screen](img/airfield_base.png)
+
 Airfield lists all existing instances on the main screen. Besides being able to start, stop, restart or delete existing instances, the URL to the instance is also shown.
 
 ## Further Development
