@@ -1,6 +1,7 @@
 <p align="center"><img src="img/airfield_logo.png" alt="Airfield" width="128"></p>
 
-# Airfield
+<h1 align="center">Airfield</h1>
+
 Airfield is an open source tool for the DC/OS ecosystem that enables teams to easily collaborate with shared Zeppelin instances.
 
 The application consists of a micro service written in Flask and a User Interface written in Vue. It was developed and is being maintained by [MaibornWolff](https://www.maibornwolff.de/).
