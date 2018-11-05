@@ -27,50 +27,36 @@ Airfield is currently under active development. Docker images based on the curre
 #### License
 Apache License Version 2.0
 
-## Setup
+## Deployment
 The following setup guide assumes you have a running DC/OS cluster with enough available resources to run both Airfield and some Zeppelin instances.
 
-Airfield depends on a number of third party services that need to be running in your DC/OS environment.
-### Marathon and Marathon-LB
-The current version of Airfield requires you to have a running Marathon service in your DC/OS environment and have configured the Marathon Loadbalancer (marathon-lb).
+Airfield depends on a number of third party services that need to be running in your DC/OS environment:
+* Marathon-LB is used to expose started zeppelin instances. You must have a wildcard DNS entry pointing at the loadbalancer. Each instance will be available using a random name as a subdomain of your wildcard domain (see `AIRFIELD_BASE_HOST` below).
+* [Consul](https://www.consul.io/) is used to store the list of existing zeppelin instances (see `AIRFIELD_CONSUL_ENDPOINT` below). The base key is individually configurable, see the [config file](airfield-microservice/config.py) for details.
 
-### Consul
-[Consul](https://www.consul.io/) is used to store:
-* available default configurations for Zeppelin Instances
-* the Marathon configuration for Zeppelin Instances
-* existing Zeppelin Instance data
 
-If the default configurations or the Marathon configuration cannot be found on Consul, then [default values](airfield-microservice/airfield/resources/) will be used.
+Airfield requires access to the Marathon API to manage zeppelin instances. You need to create a serviceaccount for it:
+```
+dcos security org service-accounts keypair private-key.pem public-key.pem
+dcos security org service-accounts create -p public-key.pem -d "Airfield service account" airfield-principal
+dcos security secrets create-sa-secret --strict private-key.pem airfield-principal airfield/account-secret
+dcos security org groups add_user superusers airfield-principal
+```
 
-To configure Consul, set the following environment variable:
-* `AIRFIELD_CONSUL_ENDPOINT` - Consul API URL (default: http://localhost:8500/v1/)
+We provide a [marathon app definition](marathon-deployment.json) for easy deployment.
 
-The base key is individually configurable, see the [config file](airfield-microservice/config.py) for details.
+The following settings need to be specified (see `TODO`s in the app definition):
+* `AIRFIELD_BASE_HOST`: Base DNS name to use for zeppelin instances (make sure its wildcard entry points towards your loadbalancer). Example: If you set it to `.zeppelin.mycorp` a zeppelin instance will be reachable via `<randomname>.zeppelin.mycorp`.
+* `AIRFIELD_CONSUL_ENDPOINT`: HTTP URL of your consul instance (for example `http://consul.marathon.l4lb.thisdcos.directory:8500`).
+* `DCOS_SERVICE_ACCOUNT_CREDENTIAL`: authorize Marathon access with service account. Change if you used a different secret.
+* `HAPROXY_0_VHOST`: URL you want Airfield to be reachable under (for example `airfield.mycorp`).
 
-#### Add Configurations to Consul
-If you do not wish to use the [default configurations](airfield-microservice/airfield/resources), then you need to add your preferred configurations to Consul.
-The same thing applies for the Zeppelin Deploy Configuration for Marathon.
-### Prometheus
-[Prometheus](https://prometheus.io/) is used to keep track of important metrics that are generated within the micro service.
+There a number of optional settings for Airfield that you can set using environment variables, see the [config file](airfield-microservice/config.py) for details.
 
-The metric names are individually configurable, see the [config file](airfield-microservice/config.py) for details.
-
-### Optional Settings
-There a number of optional settings for Airfield, see [config file](airfield-microservice/config.py) for details.
-
-## Deployment
-The [deployment script](marathon-deployment.json) is already pre-configured with most details. The following settings need to be specified:
-
-* `AIRFIELD_BASE_HOST` - DC/OS url
-* `DCOS_SERVICE_ACCOUNT_CREDENTIAL` - authorize Marathon access with service account. *Recommended option*
-* `DCOS_USERNAME` and `DCOS_PASSWORD` - authorize Marathon access with user/password. *Not recommended outside development*
-
-This is not an environment variable, it has to be set in the `labels` category of the deployment script:
-* `HAPROXY_0_VHOST` - URL you want Airfield to be reached upon.
-
-Once you have configured the desired settings in the deployment script, you can deploy the application with the DC/OS CLI:
-
-    dcos marathon app add marathon-deployment.json
+Once you have configured the desired settings, you can deploy the application with the DC/OS CLI:
+```
+dcos marathon app add marathon-deployment.json
+```
 
 ## Usage
 Airfield has a simple user interface that allows to interact with existing Zeppelin instances or create new instances with custom options.
@@ -89,12 +75,13 @@ The default values for the environment variables have been configured to use the
 
 You will still need a running DC/OS cluster to deploy your application for testing.
 ### Local Backend
-Install Python 3 and the DC/OS CLI.
+You need python >= 3.5 and an installed and configured dcos-cli (airfield uses the cli to get your cluster URL and an authentication token).
+
 ```bash
 cd airfield-microservice
 
-# Log in to DC/OS
-dcos cluster setup dcos-endpoint
+# Optional: use virtualenv
+mkvirtualenv airfield --python=/usr/bin/python3
 
 # Install dependencies
 pip install -r requirements.txt
