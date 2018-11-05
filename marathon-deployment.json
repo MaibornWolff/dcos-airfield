@@ -9,7 +9,7 @@
     {"containerPort": 5000}
   ],
   "docker": {
-        "image": "maibornwolff/airfield:latest",
+        "image": "maibornwolff/airfield:dev",
         "forcePullImage": true
       }
   },
@@ -28,12 +28,18 @@
   }],
   "labels":{
     "HAPROXY_GROUP": "external",
-    "HAPROXY_0_VHOST": ""
+    "HAPROXY_0_VHOST": "TODO"
   },
   "env": {
-      "AIRFIELD_BASE_HOST" : "",
-      "DCOS_SERVICE_ACCOUNT_CREDENTIAL": ""
-      // "DCOS_USERNAME": "",
-      // "DCOS_PASSWORD": ""
+      "AIRFIELD_BASE_HOST" : "TODO",
+      "AIRFIELD_CONSUL_ENDPOINT": "TODO",
+      "DCOS_SERVICE_ACCOUNT_CREDENTIAL": {
+        "secret": "serviceCredential"
+      }
+  },
+  "secrets": {
+    "serviceCredential": {
+      "source": "airfield/account-secret"
+    }
   }
 }

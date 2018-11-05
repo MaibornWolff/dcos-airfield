@@ -22,7 +22,7 @@ The application consists of a micro service written in Flask and a User Interfac
 5. [Roadmap](#roadmap)
 
 #### Version
-Airfield is in beta version 0.1b
+Airfield is currently under active development. Docker images based on the current master are available from [DockerHub](https://hub.docker.com/r/maibornwolff/airfield/).
 
 #### License
 Apache License Version 2.0
