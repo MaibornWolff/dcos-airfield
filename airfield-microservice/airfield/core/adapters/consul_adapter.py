@@ -4,7 +4,7 @@
 #  standard imports
 import json
 import logging
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 # third party imports
 from prometheus_client import Counter
 from consul_kv import Connection
@@ -28,6 +28,8 @@ class ConsulAdapter(object):
         try:
             return json.loads(self.conn.get(key)[key])
         except URLError as e:
+            if isinstance(e, HTTPError) and e.code == 404:
+                return None
             logging.error(e)
             error_message = "Consul server cannot be reached."
             self.consul_error_metric.inc()
@@ -39,6 +41,8 @@ class ConsulAdapter(object):
             instance_data = json.loads(self.conn.get(key)[key])
             return instance_data
         except URLError as e:
+            if isinstance(e, HTTPError) and e.code == 404:
+                return None
             logging.error(e)
             error_message = "Consul server cannot be reached."
             self.consul_error_metric.inc()
@@ -50,6 +54,8 @@ class ConsulAdapter(object):
             default_configurations = json.loads(self.conn.get(key)[key])
             return default_configurations
         except URLError as e:
+            if isinstance(e, HTTPError) and e.code == 404:
+                return None
             logging.error(e)
             error_message = "Consul server cannot be reached."
             self.consul_error_metric.inc()
@@ -57,7 +63,9 @@ class ConsulAdapter(object):
 
     def create_instance_entry(self, instance_data: dict):
         key = config.CONSUL_BASE_KEY + '/existing_instances'
-        existing_instances = json.loads(self.conn.get(key)[key])
+        existing_instances = self.get_existing_zeppelin_instance_data()
+        if not existing_instances:
+            existing_instances = []
         existing_instances.append(instance_data)
         try:
             self.conn.put(key, json.dumps(existing_instances))
@@ -71,9 +79,12 @@ class ConsulAdapter(object):
         key = config.CONSUL_BASE_KEY + '/existing_instances'
         try:
             existing_instances = json.loads(self.conn.get(key)[key])
-            for i in range(len(existing_instances)):
-                if existing_instances[i][ID_KEY] == instance_id:
-                    existing_instances.pop(i)
+            instance_index = -1
+            for idx, instance in enumerate(existing_instances):
+                if instance[ID_KEY] == instance_id:
+                    instance_index = idx
+            if instance_index > -1:
+                existing_instances.pop(instance_index)
             self.conn.put(key, json.dumps(existing_instances))
         except URLError as e:
             logging.error(e)

@@ -12,7 +12,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import config
 from . import ZeppelinConfigurationBuilder
 from airfield.utility import ApiResponse, ApiResponseStatus
-from .model import DefaultConfiguration, ZeppelinInstanceMetadata
 from .adapters import MarathonAdapter, ConsulAdapter, InstanceState
 from airfield.utility import TechnicalException
 
@@ -38,7 +37,7 @@ class AirfieldService(object):
     def get_zeppelin_instance_status(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
         instance_status = self.marathon_adapter.get_instance_status(instance_id)
-        if instance_status != InstanceState.UNAUTHORIZED or instance_status == InstanceState.CONNECTION_ERROR:
+        if instance_status == InstanceState.UNAUTHORIZED or instance_status == InstanceState.CONNECTION_ERROR:
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             self.error_metric.inc()
@@ -51,33 +50,23 @@ class AirfieldService(object):
 
     def get_zeppelin_default_configurations(self) -> ApiResponse:
         result = ApiResponse()
-        schema = DefaultConfiguration()
-        try:
-            logging.debug('Loading default configuration from consul.')
-            configuration_data = self.consul_adapter.get_zeppelin_default_configuration_data()
-            if len(configuration_data) is 0:
-                logging.info('Default configurations not found on consul. Using local default configurations.')
-                configuration_data = self._get_local_default_configurations()
-            result.status = ApiResponseStatus.SUCCESS
-            result.data = {
-                'configurations': schema.load(configuration_data, many=True)
-            }
-        except TechnicalException as e:
-            logging.error('Error while retrieving default configurations. Error={}'.format(e))
-            result.status = ApiResponseStatus.INTERNAL_ERROR
-            result.error_message = 'An error occurred.'
-            self.error_metric.inc()
+        configuration_data = self._get_local_default_configurations()
+        result.status = ApiResponseStatus.SUCCESS
+        result.data = {
+            'configurations': configuration_data
+        }
         return result
 
     def get_existing_zeppelin_instances(self) -> ApiResponse:
         result = ApiResponse()
-        schema = ZeppelinInstanceMetadata()
         try:
             logging.debug('Retrieving existing instances from consul.')
             instance_data = self.consul_adapter.get_existing_zeppelin_instance_data()
+            if not instance_data:
+                instance_data = []
             result.status = ApiResponseStatus.SUCCESS
             result.data = {
-                'instances': schema.load(instance_data, many=True)
+                'instances': instance_data
             }
         except TechnicalException as e:
             logging.error('Error while retrieving existing zeppelin instances. Error={}'.format(e))
@@ -88,11 +77,6 @@ class AirfieldService(object):
 
     def create_zeppelin_instance(self, custom_settings: dict) -> ApiResponse:
         result = ApiResponse()
-        if self.marathon_adapter.instance_exists(custom_settings[CONFIGURATION_KEY].get(CONFIGURATION_ID_KEY, None)):
-            logging.info('Create instance failed. ID in use.')
-            result.status = ApiResponseStatus.INTERNAL_ERROR
-            result.error_message = 'An error occurred.'
-            return result
 
         try:
             logging.debug('Loading zeppelin instance base configuration from consul.')
@@ -231,21 +215,20 @@ class AirfieldService(object):
         return result
 
     def _get_zeppelin_base_configuration(self) -> dict:
-        try:
-            configuration = self.consul_adapter.get_zeppelin_configuration()
-            if configuration is None:
-                logging.info('Zeppelin instance base configuration not found on consul. '
-                             'Using local base configuration.')
-                configuration = self._get_local_base_configuration()
-            return configuration
-        except TechnicalException as e:
-            raise e
+        configuration = self.consul_adapter.get_zeppelin_configuration()
+        if configuration is None:
+            logging.info('Zeppelin instance base configuration not found on consul. '
+                         'Using local base configuration.')
+            configuration = self._get_local_base_configuration()
+        return configuration
 
     def _get_local_default_configurations(self):
-        return json.load(config.LOCAL_ZEPPELIN_DEFAULT_CONFIG_DIRECTORY)
+        with open(config.LOCAL_ZEPPELIN_DEFAULT_CONFIG_DIRECTORY) as config_file:
+            return json.load(config_file)
 
     def _get_local_base_configuration(self):
-        return json.load(config.LOCAL_ZEPPELIN_BASE_CONFIG_DIRECTORY)
+        with open(config.LOCAL_ZEPPELIN_BASE_CONFIG_DIRECTORY) as config_file:
+            return json.load(config_file)
 
     def _setup_metrics(self):
         logging.debug('Setting up core service metrics.')
@@ -259,6 +242,8 @@ class AirfieldService(object):
         try:
             logging.debug('Loading existing instances from consul to initialize metrics.')
             existing_instances = self.consul_adapter.get_existing_zeppelin_instance_data()
+            if not existing_instances:
+                return
             active_instance_count = 0
             for instance in existing_instances:
                 instance_status = self.marathon_adapter.get_instance_status(instance[CONFIGURATION_ID_KEY])
@@ -296,12 +281,12 @@ class AirfieldService(object):
         overdue_instances = []
         try:
             existing_instances = self.consul_adapter.get_existing_zeppelin_instance_data()
+            if not existing_instances:
+                return overdue_instances
             for instance in existing_instances:
-                try:
-                    if instance[CONSUL_ENTRY_DELETE_AT_KEY] > datetime.utcnow().timestamp():
-                        overdue_instances.append(instance[CONSUL_ENTRY_ID_KEY])
-                except KeyError:
-                    logging.debug('Deletion timer not set for this instance.')
+                delete_at = instance[CONSUL_ENTRY_DELETE_AT_KEY]
+                if delete_at and delete_at > datetime.utcnow().timestamp():
+                    overdue_instances.append(instance[CONSUL_ENTRY_ID_KEY])
         except TechnicalException as e:
             logging.error('Error while loading existing instances from consul. Error={}'.format(e))
             self.error_metric.inc()

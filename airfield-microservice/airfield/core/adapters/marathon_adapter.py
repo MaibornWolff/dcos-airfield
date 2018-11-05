@@ -2,21 +2,21 @@
 """Handles Marathon interactions."""
 
 #  standard imports
-import os
 import time
 import logging
-import requests
-import subprocess
 from enum import Enum
 # third party imports
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from prometheus_client import Counter
 # custom imports
 import config
 from .dcos_auth import retrieve_auth
 
 
-DCOS_CLI_TOKEN_SUBPROCESS = ['dcos', 'config', 'show', 'core.dcos_acs_token']
-DCOS_CLI_URL_SUBPROCESS = ['dcos', 'config', 'show', 'core.dcos_url']
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+
 MARATHON_URL_POSTFIX = '/service/marathon/v2'
 
 
@@ -36,15 +36,13 @@ class MarathonAdapter(object):
     def __init__(self):
         logging.info('Initializing MarathonAdapter.')
         self._setup_metrics()
+        self.base_url, self.auth = retrieve_auth()
 
     def get_instance_status(self, instance_id: str) -> InstanceState:
-        authorization = retrieve_auth()
-        url = self._get_marathon_url(authorization[0]) + '/apps/%s/?embed=app.counts' % instance_id
-        response = requests.get(
-            url=url,
-            auth=authorization[1],
-            verify=False
-        )
+        if not instance_id:
+            raise Exception("No instance id provided")
+        url = self._get_marathon_url() + '/apps/%s/?embed=app.counts' % instance_id
+        response = requests.get(url=url, auth=self.auth, verify=False)
         if not response.ok:
             logging.error(response, response.text)
             if response.status_code == 404:
@@ -67,7 +65,7 @@ class MarathonAdapter(object):
             else:
                 return InstanceState.STOPPED
         except KeyError as e:
-            logging.error(e)
+            logging.error("Failed to get instance state: %s" % e)
             self.marathon_error_metric.inc()
             return InstanceState.NOT_FOUND
 
@@ -82,14 +80,8 @@ class MarathonAdapter(object):
 
     def deploy_instance(self, instance_definition) -> bool:
         wait_for_deployment = config.WAIT_FOR_DEPLOYMENT
-        authorization = retrieve_auth()
-        url = self._get_marathon_url(authorization[0]) + '/apps'
-        response = requests.put(
-            url=url,
-            json=[instance_definition],
-            auth=authorization[1],
-            verify=False
-        )
+        url = self._get_marathon_url() + '/apps'
+        response = requests.put(url=url, json=[instance_definition], auth=self.auth, verify=False)
         if not response.ok:
             logging.error(response.text)
             self.marathon_error_metric.inc()
@@ -116,13 +108,8 @@ class MarathonAdapter(object):
         return self._patch_instance(instance_id, payload)
 
     def restart_instance(self, instance_id: str) -> bool:
-        authorization = retrieve_auth()
-        url = self._get_marathon_url(authorization[0]) + '/apps/{}/restart'.format(instance_id)
-        response = requests.post(
-            url,
-            auth=authorization[1],
-            verify=False
-        )
+        url = self._get_marathon_url() + '/apps/{}/restart'.format(instance_id)
+        response = requests.post(url, auth=self.auth, verify=False)
         if response.ok:
             return True
         else:
@@ -131,13 +118,8 @@ class MarathonAdapter(object):
             return False
 
     def delete_instance(self, instance_id: str) -> bool:
-        authorization = retrieve_auth()
-        url = self._get_marathon_url(authorization[0]) + '/apps/{}'.format(instance_id)
-        response = requests.delete(
-            url,
-            auth=authorization[1],
-            verify=False
-        )
+        url = self._get_marathon_url() + '/apps/{}'.format(instance_id)
+        response = requests.delete(url, auth=self.auth, verify=False)
         if response.ok:
             return True
         else:
@@ -146,16 +128,10 @@ class MarathonAdapter(object):
             return False
 
     def _patch_instance(self, instance_id: str, payload: dict) -> bool:
-        authorization = retrieve_auth()
-        url = self._get_marathon_url(authorization[0]) + '/apps/{}'.format(instance_id)
+        url = self._get_marathon_url() + '/apps/{}'.format(instance_id)
         logging.info('Patching instance. url={0} id={1}'.format(url, instance_id))
         logging.debug('Patch payload={}'.format(payload))
-        response = requests.patch(
-            url,
-            json=payload,
-            auth=authorization[1],
-            verify=False
-        )
+        response = requests.patch(url, json=payload, auth=self.auth, verify=False)
         if response.ok:
             return True
         else:
@@ -176,8 +152,8 @@ class MarathonAdapter(object):
             state = self.get_instance_status(instance_id)
         return True
 
-    def _get_marathon_url(self, base_url) -> str:
-        return base_url + MARATHON_URL_POSTFIX
+    def _get_marathon_url(self) -> str:
+        return self.base_url + MARATHON_URL_POSTFIX
 
     def _setup_metrics(self):
         self.marathon_error_metric = Counter('airfield_marathon_errors_total',
