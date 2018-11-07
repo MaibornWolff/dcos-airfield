@@ -123,8 +123,14 @@ npm run lint
 ```
 
 ## Roadmap
-The current release contains all basic functionality to collaborate with shared Zeppelin instances. Below is a list of future additions that will be included in a next release.
+The current release contains all basic functionality to collaborate with shared Zeppelin instances. Below is a list of future additions that will probably be included in a future release. Of course we can't give any guarantees :-)
 
 1. Securing the application with OIDC
 2. Usability improvements (only show creatable instances, allow adding GPUs to the instance, etc.)
 3. Adding notebook templates to be created automatically on instance start
+4. Add a prefix to the instance id so the Zeppelin instances can be identified more easily when operating the DC/OS cluster
+5. Deployment as DC/OS package
+6. Build PR for DC/OS universe
+7. Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in starting mode
+8. Allow integration with dynamically scaling the DC/OS cluster
+9. Define user / password for new instances
