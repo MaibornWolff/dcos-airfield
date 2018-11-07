@@ -131,6 +131,6 @@ The current release contains all basic functionality to collaborate with shared 
 4. Add a prefix to the instance id so the Zeppelin instances can be identified more easily when operating the DC/OS cluster
 5. Deployment as DC/OS package
 6. Build PR for DC/OS universe
-7. Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in starting mode
+7. Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in staging mode
 8. Allow integration with dynamically scaling the DC/OS cluster
 9. Define user / password for new instances
