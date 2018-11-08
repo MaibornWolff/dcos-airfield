@@ -25,7 +25,7 @@ class EtcdAdapter(object):
             host, port = config.ETCD_ENDPOINT.split(":")
         self.conn = etcd.Client(host=host, port=int(port))
 
-    def get_zeppelin_configuration(self):
+    def get_zeppelin_marathon_app_definition(self):
         key = config.CONFIG_BASE_KEY + '/zeppelin_configuration'
         try:
             return json.loads(self.conn.read(key).value)
@@ -88,5 +88,5 @@ class EtcdAdapter(object):
             raise TechnicalException("etcd server cannot be reached.")
 
     def _setup_metrics(self):
-        logging.debug('Setting up consul metrics.')
+        logging.debug('Setting up metrics.')
         self.etcd_error_metric = Counter('airfield_etcd_errors_total', 'EtcdAdapter Errors')

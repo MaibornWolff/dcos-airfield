@@ -23,7 +23,7 @@ class ConsulAdapter(object):
         endpoint = config.CONSUL_ENDPOINT
         self.conn = Connection(endpoint=endpoint)
 
-    def get_zeppelin_configuration(self):
+    def get_zeppelin_marathon_app_definition(self):
         key = config.CONFIG_BASE_KEY + '/zeppelin_configuration'
         try:
             return json.loads(self.conn.get(key)[key])

@@ -15,8 +15,8 @@ from airfield.utility import ApiResponse, ApiResponseStatus
 from .adapters import MarathonAdapter, EtcdAdapter, ConsulAdapter, InstanceState
 from airfield.utility import TechnicalException
 
-CONSUL_ENTRY_DELETE_AT_KEY = 'delete_at'
-CONSUL_ENTRY_ID_KEY = 'id'
+DELETE_AT_KEY = 'delete_at'
+ID_KEY = 'id'
 CONFIGURATION_KEY = 'configuration'
 CONFIGURATION_ID_KEY = 'id'
 
@@ -41,7 +41,9 @@ class AirfieldService(object):
 
     def get_zeppelin_instance_status(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
-        instance_status = self.marathon_adapter.get_instance_status(instance_id)
+        app_id = self._marathon_app_id(instance_id)
+
+        instance_status = self.marathon_adapter.get_instance_status(app_id)
         if instance_status == InstanceState.UNAUTHORIZED or instance_status == InstanceState.CONNECTION_ERROR:
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
@@ -65,7 +67,7 @@ class AirfieldService(object):
     def get_existing_zeppelin_instances(self) -> ApiResponse:
         result = ApiResponse()
         try:
-            logging.debug('Retrieving existing instances from consul.')
+            logging.debug('Retrieving existing instances.')
             instance_data = self.config_store.get_existing_zeppelin_instance_data()
             if not instance_data:
                 instance_data = []
@@ -83,42 +85,33 @@ class AirfieldService(object):
     def create_zeppelin_instance(self, custom_settings: dict) -> ApiResponse:
         result = ApiResponse()
 
-        try:
-            logging.debug('Loading zeppelin instance base configuration from consul.')
-            base_configuration = self._get_zeppelin_base_configuration()
-        except TechnicalException as e:
-            logging.error('Error while creating zeppelin instance. Error={}'.format(e))
-            result.status = ApiResponseStatus.INTERNAL_ERROR
-            result.error_message = 'An error occurred.'
-            self.error_metric.inc()
-            return result
+        app_definition = self._get_zeppelin_marathon_app_definition()
 
         try:
             logging.debug('Modifying zeppelin instance configuration with custom settings.')
-            configuration = self.configuration_builder.create_instance_configuration(
-                custom_settings, base_configuration)
+            app_definition, metadata = self.configuration_builder.create_instance_configuration(
+                custom_settings, app_definition)
         except KeyError as e:
             logging.error('Error while parsing custom settings. Error={}'.format(e))
-            logging.debug('Base configuration={}'.format(base_configuration))
+            logging.debug('Base configuration={}'.format(app_definition))
             logging.debug('Custom settings={}'.format(custom_settings))
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             self.error_metric.inc()
             return result
 
-        deployment_successful = self.marathon_adapter.deploy_instance(configuration)
+        deployment_successful = self.marathon_adapter.deploy_instance(app_definition)
         if deployment_successful:
             logging.info('Create instance successful.')
             try:
-                logging.debug('Creating consul entry.')
-                instance_data = self.configuration_builder.parse_consul_instance_entry(custom_settings, configuration)
-                self.config_store.create_instance_entry(instance_data)
+                logging.debug('Storing metadata.')
+                self.config_store.create_instance_entry(metadata)
                 result.status = ApiResponseStatus.SUCCESS
                 self.existing_instances_metric.inc()
                 self.active_instances_metric.inc()
                 return result
             except TechnicalException as e:
-                logging.error('Error while creating consul entry for new zeppelin instance. Error={}'.format(e))
+                logging.error('Error while storing metadata for new zeppelin instance. Error={}'.format(e))
                 result.status = ApiResponseStatus.INTERNAL_ERROR
                 result.error_message = 'An error occurred.'
                 self.error_metric.inc()
@@ -132,21 +125,22 @@ class AirfieldService(object):
 
     def delete_zeppelin_instance(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
+        app_id = self._marathon_app_id(instance_id)
 
-        if not self.marathon_adapter.instance_exists(instance_id):
+        if not self.marathon_adapter.instance_exists(app_id):
             logging.info('Delete instance failed. ID does not exist.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             return result
 
-        delete_successful = self.marathon_adapter.delete_instance(instance_id)
+        delete_successful = self.marathon_adapter.delete_instance(app_id)
         if delete_successful:
             logging.info('Delete instance successful.')
             try:
-                logging.debug('Removing instance from consul. ID={}'.format(instance_id))
+                logging.debug('Removing instance metadata. ID={}'.format(instance_id))
                 self.config_store.remove_instance_entry(instance_id)
             except TechnicalException as e:
-                logging.error('Could not remove instance entry from consul. Error={}'.format(e))
+                logging.error('Could not remove instance metadata. Error={}'.format(e))
                 self.error_metric.inc()
             result.status = ApiResponseStatus.SUCCESS
             self.active_instances_metric.dec()
@@ -159,14 +153,15 @@ class AirfieldService(object):
 
     def restart_zeppelin_instance(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
+        app_id = self._marathon_app_id(instance_id)
 
-        if not self.marathon_adapter.instance_exists(instance_id):
+        if not self.marathon_adapter.instance_exists(app_id):
             logging.info('Restart instance failed. ID does not exist.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             return result
 
-        restart_successful = self.marathon_adapter.restart_instance(instance_id)
+        restart_successful = self.marathon_adapter.restart_instance(app_id)
         if restart_successful:
             logging.info('Restart instance successful.')
             result.status = ApiResponseStatus.SUCCESS
@@ -179,14 +174,15 @@ class AirfieldService(object):
 
     def start_zeppelin_instance(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
+        app_id = self._marathon_app_id(instance_id)
 
-        if not self.marathon_adapter.instance_exists(instance_id):
+        if not self.marathon_adapter.instance_exists(app_id):
             logging.info('Start instance failed. ID does not exist.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             return result
 
-        start_successful = self.marathon_adapter.start_instance(instance_id)
+        start_successful = self.marathon_adapter.start_instance(app_id)
         if start_successful:
             logging.info('Start instance successful.')
             result.status = ApiResponseStatus.SUCCESS
@@ -200,14 +196,15 @@ class AirfieldService(object):
 
     def stop_zeppelin_instance(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
+        app_id = self._marathon_app_id(instance_id)
 
-        if not self.marathon_adapter.instance_exists(instance_id):
+        if not self.marathon_adapter.instance_exists(app_id):
             logging.info('Stop Instance failed. ID does not exist.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             return result
 
-        stop_successful = self.marathon_adapter.stop_instance(instance_id)
+        stop_successful = self.marathon_adapter.stop_instance(app_id)
         if stop_successful:
             logging.info('Stop instance successful.')
             result.status = ApiResponseStatus.SUCCESS
@@ -219,20 +216,21 @@ class AirfieldService(object):
             self.error_metric.inc()
         return result
 
-    def _get_zeppelin_base_configuration(self) -> dict:
-        configuration = self.config_store.get_zeppelin_configuration()
-        if configuration is None:
-            logging.info('Zeppelin instance base configuration not found on consul. '
-                         'Using local base configuration.')
-            configuration = self._get_local_base_configuration()
-        return configuration
+    def _get_zeppelin_marathon_app_definition(self) -> dict:
+        app_definition = None
+        try:
+            app_definition = self.config_store.get_zeppelin_marathon_app_definition()
+        except Exception as e:
+            logging.warn("Encountered exception when accessing etcd/consul: ", e)
+        if app_definition is None:
+            logging.info('Zeppelin marathon app definition not found in etcd/consul. '
+                         'Using default.')
+            with open(config.MARATHON_APP_DEFINITION_FILE) as marathon_file:
+                app_definition = json.load(marathon_file)
+        return app_definition
 
     def _get_local_default_configurations(self):
         with open(config.LOCAL_ZEPPELIN_DEFAULT_CONFIG_DIRECTORY) as config_file:
-            return json.load(config_file)
-
-    def _get_local_base_configuration(self):
-        with open(config.LOCAL_ZEPPELIN_BASE_CONFIG_DIRECTORY) as config_file:
             return json.load(config_file)
 
     def _setup_metrics(self):
@@ -245,20 +243,20 @@ class AirfieldService(object):
                                              'Active Zeppelin Instances')
 
         try:
-            logging.debug('Loading existing instances from consul to initialize metrics.')
+            logging.debug('Loading existing instances to initialize metrics.')
             existing_instances = self.config_store.get_existing_zeppelin_instance_data()
             if not existing_instances:
                 return
             active_instance_count = 0
             for instance in existing_instances:
-                instance_status = self.marathon_adapter.get_instance_status(instance[CONFIGURATION_ID_KEY])
+                instance_status = self.marathon_adapter.get_instance_status(self._marathon_app_id(instance[CONFIGURATION_ID_KEY]))
                 if instance_status == InstanceState.HEALTHY:
                     active_instance_count += 1
 
             self.existing_instances_metric.set(len(existing_instances))
             self.active_instances_metric.set(active_instance_count)
         except TechnicalException as e:
-            logging.error('Error while loading existing instances from consul. Error={}'.format(e))
+            logging.error('Error while loading existing instances. Error={}'.format(e))
             self.error_metric.inc()
 
     def _start_periodic_tasks(self):
@@ -282,17 +280,23 @@ class AirfieldService(object):
                 self.delete_zeppelin_instance(instance_id)
 
     def _get_overdue_instance_ids(self) -> [int]:
-        logging.debug('Retrieving existing instances from consul to get overdue instances.')
+        logging.debug('Retrieving existing instances to get overdue instances.')
         overdue_instances = []
         try:
             existing_instances = self.config_store.get_existing_zeppelin_instance_data()
             if not existing_instances:
                 return overdue_instances
             for instance in existing_instances:
-                delete_at = instance[CONSUL_ENTRY_DELETE_AT_KEY]
+                delete_at = instance[DELETE_AT_KEY]
                 if delete_at and delete_at > datetime.utcnow().timestamp():
-                    overdue_instances.append(instance[CONSUL_ENTRY_ID_KEY])
+                    overdue_instances.append(instance[ID_KEY])
         except TechnicalException as e:
-            logging.error('Error while loading existing instances from consul. Error={}'.format(e))
+            logging.error('Error while loading existing instances. Error={}'.format(e))
             self.error_metric.inc()
         return overdue_instances
+
+    def _marathon_app_id(self, instance_id: str):
+        if config.MARATHON_APP_GROUP:
+            return "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
+        else:
+            return instance_id

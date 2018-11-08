@@ -55,7 +55,9 @@ The following settings need to be specified (see `TODO`s in the app definition):
 * `DCOS_SERVICE_ACCOUNT_CREDENTIAL`: authorize Marathon access with service account. Change if you used a different secret.
 * `HAPROXY_0_VHOST`: URL you want Airfield to be reachable under (for example `airfield.mycorp`).
 
-There a number of optional settings for Airfield that you can set using environment variables, see the [config file](airfield-microservice/config.py) for details.
+There a number of optional settings for Airfield that you can set using environment variables (see the [config file](airfield-microservice/config.py) for a complete list):
+* Airfield will put all zeppelin instances into the marathon app group `airfield-zeppelin` by default. Set `AIRFIELD_MARATHON_APP_GROUP` to override it. Set it to an empty string to make airfield deploy all instances on the root level.
+* By default all metadata will be stored in etcd/consul using the prefix `airfield`. You can override it by setting `AIRFIELD_CONFIG_BASE_KEY`.
 
 Once you have configured the desired settings, you can deploy the application with the DC/OS CLI:
 ```
@@ -123,12 +125,11 @@ npm run lint
 ## Roadmap
 The current release contains all basic functionality to collaborate with shared Zeppelin instances. Below is a list of future additions that will probably be included in a future release. Of course we can't give any guarantees :-)
 
-1. Securing the application with OIDC
-2. Usability improvements (only show creatable instances, allow adding GPUs to the instance, etc.)
-3. Adding notebook templates to be created automatically on instance start
-4. Add a prefix to the instance id so the Zeppelin instances can be identified more easily when operating the DC/OS cluster
-5. Deployment as DC/OS package
-6. Build PR for DC/OS universe
-7. Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in staging mode
-8. Allow integration with dynamically scaling the DC/OS cluster
-9. Define user / password for new instances
+* Securing the application with OIDC
+* Usability improvements (only show creatable instances, allow adding GPUs to the instance, etc.)
+* Adding notebook templates to be created automatically on instance start
+* Deployment as DC/OS package
+* Build PR for DC/OS universe
+* Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in staging
+* Allow integration with dynamically scaling the DC/OS cluster
+* Protect zeppelin instances with user / password

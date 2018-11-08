@@ -12,18 +12,18 @@ import config
 
 
 CREATE_NOTEBOOK_API_URL = "/api/notebook"
-CONFIGURATION_KEY = 'configuration'
-CONFIGURATION_ID_KEY = 'id'
-CONFIGURATION_LABEL_KEY = 'labels'
-CONFIGURATION_HOST_KEY = 'HAPROXY_0_VHOST'
-CONFIGURATION_COMMENT_KEY = 'comment'
-CONFIGURATION_LIBRARIES_KEY = 'libraries'
-CONFIGURATION_ENV_KEY = 'env'
-CONFIGURATION_CPUS_KEY = "cpus"
-CONFIGURATION_MEM_KEY = "mem"
-CONFIGURATION_PYTHON_PACKAGES_KEY = 'PYTHON_PACKAGES'
-CONFIGURATION_R_PACKAGES_KEY = 'R_PACKAGES'
-CONSUL_ENTRY_DELETE_AT_KEY = 'delete_at'
+KEY = 'configuration'
+ID_KEY = 'id'
+LABEL_KEY = 'labels'
+HOST_KEY = 'HAPROXY_0_VHOST'
+COMMENT_KEY = 'comment'
+LIBRARIES_KEY = 'libraries'
+ENV_KEY = 'env'
+CPUS_KEY = "cpus"
+MEM_KEY = "mem"
+PYTHON_PACKAGES_KEY = 'PYTHON_PACKAGES'
+R_PACKAGES_KEY = 'R_PACKAGES'
+DELETE_AT_KEY = 'delete_at'
 INSTANCE_URL_PREFIX = 'https://'
 LANGUAGE_KEY = 'language'
 LANGUAGE_PYTHON = 'Python'
@@ -36,45 +36,41 @@ class ZeppelinConfigurationBuilder(object):
     def __init__(self):
         logging.info('Initializing ConfigurationBuilder.')
 
-    def create_instance_configuration(self, custom_configuration: dict, base_configuration: dict) -> dict:
+    def create_instance_configuration(self, custom_configuration: dict, app_definition: dict):
         """
-        Creates a valid Zeppelin instance configuration with parameters specified in frontend.
+        Creates a valid Zeppelin instance configuration based on parameters specified in frontend.
 
         :param custom_configuration: the settings that are customizable in the frontend
-        :param base_configuration: The basic zeppelin configuration as defined locally or on consul
-        :return: a dictionary containing the valid Zeppelin instance configuration
+        :param app_definition: The marathon app definition for the zeppelin instance
+        :return: app definition for zeppelin instance and instance metadata for consul/etcd
         """
-        base_configuration[CONFIGURATION_ID_KEY] = self._generate_random_id()
-        base_configuration[CONFIGURATION_LABEL_KEY][CONFIGURATION_HOST_KEY] = self._parse_url(base_configuration[CONFIGURATION_ID_KEY])
-
-        configuration_options = custom_configuration[CONFIGURATION_KEY]
-
-        base_configuration[CONFIGURATION_CPUS_KEY] = int(configuration_options[CONFIGURATION_CPUS_KEY])
-        base_configuration[CONFIGURATION_MEM_KEY] = int(configuration_options[CONFIGURATION_MEM_KEY])
-        for key, value in configuration_options[CONFIGURATION_ENV_KEY].items():
-            base_configuration[CONFIGURATION_ENV_KEY][key] = value
-        python_packages_string, r_packages_string = self._parse_additional_packages(configuration_options)
+        instance_id = self._generate_instance_id()
+        app_id = instance_id
+        if config.MARATHON_APP_GROUP:
+            app_id = "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
+        instance_url = self._parse_url(instance_id)
+        options = custom_configuration[KEY]
+        # Add configuration options to app definition
+        app_definition[ID_KEY] = app_id
+        app_definition[LABEL_KEY][HOST_KEY] = instance_url
+        app_definition[CPUS_KEY] = int(options[CPUS_KEY])
+        app_definition[MEM_KEY] = int(options[MEM_KEY])
+        for key, value in options[ENV_KEY].items():
+            app_definition[ENV_KEY][key] = value
+        python_packages_string, r_packages_string = self._parse_additional_packages(options)
         if python_packages_string:
-            base_configuration[CONFIGURATION_ENV_KEY][CONFIGURATION_PYTHON_PACKAGES_KEY] = python_packages_string
+            app_definition[ENV_KEY][PYTHON_PACKAGES_KEY] = python_packages_string
         if r_packages_string:
-            base_configuration[CONFIGURATION_ENV_KEY][CONFIGURATION_R_PACKAGES_KEY] = r_packages_string
-        return base_configuration
-
-    def parse_consul_instance_entry(self, input_data: dict, instance_configuration: dict) -> dict:
-        """
-        Parses the created instance data into a consul instance entry.
-
-        :param input_data: some data passed from the frontend, such as comments
-        :param instance_configuration: the created instance configuration
-        :return: a dictionary containing the consul entry
-        """
-        return dict(
-            url=INSTANCE_URL_PREFIX + self._parse_url(instance_configuration[CONFIGURATION_ID_KEY]),
-            id=instance_configuration[CONFIGURATION_ID_KEY],
-            comment=input_data.get(CONFIGURATION_COMMENT_KEY, None),
+            app_definition[ENV_KEY][R_PACKAGES_KEY] = r_packages_string
+        # Create config entry for config store
+        metadata = dict(
+            url=INSTANCE_URL_PREFIX + instance_url,
+            id=instance_id,
+            comment=custom_configuration.get(COMMENT_KEY, None),
             created_at=datetime.utcnow().timestamp(),
-            delete_at=input_data.get(CONSUL_ENTRY_DELETE_AT_KEY, None)
+            delete_at=custom_configuration.get(DELETE_AT_KEY, None)
         )
+        return app_definition, metadata
 
     def _parse_additional_packages(self, configuration: dict) -> dict:
         """
@@ -86,19 +82,19 @@ class ZeppelinConfigurationBuilder(object):
         """
         python_packages_string = None
         r_packages_string = None
-        for libraries in configuration[CONFIGURATION_LIBRARIES_KEY]:
+        for libraries in configuration[LIBRARIES_KEY]:
             if libraries[LANGUAGE_KEY] == LANGUAGE_PYTHON:
-                if len(libraries[CONFIGURATION_LIBRARIES_KEY]) > 0:
+                if len(libraries[LIBRARIES_KEY]) > 0:
                     python_packages = []
-                    for package in libraries[CONFIGURATION_LIBRARIES_KEY]:
+                    for package in libraries[LIBRARIES_KEY]:
                         python_packages.append(package)
                     if libraries.get(TENSORFLOW, False):
                         python_packages.append(TENSORFLOW)
                     python_packages_string = self._create_python_packages_string(python_packages)
             if libraries[LANGUAGE_KEY] == LANGUAGE_R:
-                if len(libraries[CONFIGURATION_LIBRARIES_KEY]) > 0:
+                if len(libraries[LIBRARIES_KEY]) > 0:
                     r_packages = []
-                    for package in libraries[CONFIGURATION_LIBRARIES_KEY]:
+                    for package in libraries[LIBRARIES_KEY]:
                         r_packages.append(package)
                     r_packages_string = self._create_r_packages_string(r_packages)
         return python_packages_string, r_packages_string
@@ -128,7 +124,7 @@ class ZeppelinConfigurationBuilder(object):
             package_string = ','.join(["'%s'" % p for p in r_packages])
             return "c(%s)" % package_string
 
-    def _generate_random_id(self) -> str:
+    def _generate_instance_id(self) -> str:
         return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(9))
 
     def _parse_url(self, instance_id: str) -> str:

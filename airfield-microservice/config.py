@@ -39,10 +39,12 @@ API_PREFIX = os.getenv('AIRFIELD_API_PREFIX', '/api/zeppelin')
 LOCAL_ZEPPELIN_DEFAULT_CONFIG_DIRECTORY = os.getenv('AIRFIELD_LOCAL_ZEPPELIN_DEFAULT_CONFIGS',
                                                     'airfield/resources/default_configurations.json')
 
-LOCAL_ZEPPELIN_BASE_CONFIG_DIRECTORY = os.getenv('AIRFIELD_LOCAL_ZEPPELIN_BASE_CONFIG',
-                                                 'airfield/resources/zeppelin_configuration.json')
+MARATHON_APP_DEFINITION_FILE = os.getenv('AIRFIELD_MARATHON_APP_DEFINITION_FILE',
+                                                 'airfield/resources/zeppelin_marathon.json')
 
 LOGGING_LEVEL = os.getenv('AIRFIELD_LOGGING_LEVEL', 'INFO')
+
+MARATHON_APP_GROUP = os.getenv("AIRFIELD_MARATHON_APP_GROUP", "airfield-zeppelin")
 
 # -------------------------------------------------------------------------------
 # 3. OpenID Connect settings
@@ -66,7 +68,7 @@ OIDC_ID_TOKEN_COOKIE_SECURE = os.getenv('AIRFIELD_OIDC_ID_TOKEN_COOKIE_SECURE', 
 OIDC_REQUIRE_VERIFIED_EMAIL = os.getenv('AIRFIELD_OIDC_REQUIRE_VERIFIED_EMAIL', False)
 
 # -------------------------------------------------------------------------------
-# 4. etcd adapter settings
+# 4. consul/etcd adapter settings
 # -------------------------------------------------------------------------------
 ETCD_ENDPOINT = os.getenv('AIRFIELD_ETCD_ENDPOINT')
 CONSUL_ENDPOINT = os.getenv('AIRFIELD_CONSUL_ENDPOINT')
