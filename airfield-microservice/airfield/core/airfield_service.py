@@ -12,7 +12,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import config
 from . import ZeppelinConfigurationBuilder
 from airfield.utility import ApiResponse, ApiResponseStatus
-from .adapters import MarathonAdapter, ConsulAdapter, InstanceState
+from .adapters import MarathonAdapter, EtcdAdapter, ConsulAdapter, InstanceState
 from airfield.utility import TechnicalException
 
 CONSUL_ENTRY_DELETE_AT_KEY = 'delete_at'
@@ -29,7 +29,12 @@ class AirfieldService(object):
         logging.debug('Starting background scheduler.')
         self.scheduler.start()
         self.marathon_adapter = MarathonAdapter()
-        self.consul_adapter = ConsulAdapter()
+        if config.ETCD_ENDPOINT:
+            self.config_store = EtcdAdapter()
+        elif config.CONSUL_ENDPOINT:
+            self.config_store = ConsulAdapter()
+        else:
+            raise Exception("Neither ETCD_ENDPOINT nor CONSUL_ENDPOINT are specified.")
         self.configuration_builder = ZeppelinConfigurationBuilder()
         self._setup_metrics()
         self._start_periodic_tasks()
@@ -61,7 +66,7 @@ class AirfieldService(object):
         result = ApiResponse()
         try:
             logging.debug('Retrieving existing instances from consul.')
-            instance_data = self.consul_adapter.get_existing_zeppelin_instance_data()
+            instance_data = self.config_store.get_existing_zeppelin_instance_data()
             if not instance_data:
                 instance_data = []
             result.status = ApiResponseStatus.SUCCESS
@@ -107,7 +112,7 @@ class AirfieldService(object):
             try:
                 logging.debug('Creating consul entry.')
                 instance_data = self.configuration_builder.parse_consul_instance_entry(custom_settings, configuration)
-                self.consul_adapter.create_instance_entry(instance_data)
+                self.config_store.create_instance_entry(instance_data)
                 result.status = ApiResponseStatus.SUCCESS
                 self.existing_instances_metric.inc()
                 self.active_instances_metric.inc()
@@ -139,7 +144,7 @@ class AirfieldService(object):
             logging.info('Delete instance successful.')
             try:
                 logging.debug('Removing instance from consul. ID={}'.format(instance_id))
-                self.consul_adapter.remove_instance_entry(instance_id)
+                self.config_store.remove_instance_entry(instance_id)
             except TechnicalException as e:
                 logging.error('Could not remove instance entry from consul. Error={}'.format(e))
                 self.error_metric.inc()
@@ -215,7 +220,7 @@ class AirfieldService(object):
         return result
 
     def _get_zeppelin_base_configuration(self) -> dict:
-        configuration = self.consul_adapter.get_zeppelin_configuration()
+        configuration = self.config_store.get_zeppelin_configuration()
         if configuration is None:
             logging.info('Zeppelin instance base configuration not found on consul. '
                          'Using local base configuration.')
@@ -241,7 +246,7 @@ class AirfieldService(object):
 
         try:
             logging.debug('Loading existing instances from consul to initialize metrics.')
-            existing_instances = self.consul_adapter.get_existing_zeppelin_instance_data()
+            existing_instances = self.config_store.get_existing_zeppelin_instance_data()
             if not existing_instances:
                 return
             active_instance_count = 0
@@ -280,7 +285,7 @@ class AirfieldService(object):
         logging.debug('Retrieving existing instances from consul to get overdue instances.')
         overdue_instances = []
         try:
-            existing_instances = self.consul_adapter.get_existing_zeppelin_instance_data()
+            existing_instances = self.config_store.get_existing_zeppelin_instance_data()
             if not existing_instances:
                 return overdue_instances
             for instance in existing_instances:

@@ -24,7 +24,7 @@ class ConsulAdapter(object):
         self.conn = Connection(endpoint=endpoint)
 
     def get_zeppelin_configuration(self):
-        key = config.CONSUL_BASE_KEY + '/zeppelin_configuration'
+        key = config.CONFIG_BASE_KEY + '/zeppelin_configuration'
         try:
             return json.loads(self.conn.get(key)[key])
         except URLError as e:
@@ -36,7 +36,7 @@ class ConsulAdapter(object):
             raise TechnicalException(error_message)
 
     def get_existing_zeppelin_instance_data(self) -> dict:
-        key = config.CONSUL_BASE_KEY + '/existing_instances'
+        key = config.CONFIG_BASE_KEY + '/existing_instances'
         try:
             instance_data = json.loads(self.conn.get(key)[key])
             return instance_data
@@ -49,7 +49,7 @@ class ConsulAdapter(object):
             raise TechnicalException(error_message)
 
     def get_zeppelin_default_configuration_data(self):
-        key = config.CONSUL_BASE_KEY + '/default_configs'
+        key = config.CONFIG_BASE_KEY + '/default_configs'
         try:
             default_configurations = json.loads(self.conn.get(key)[key])
             return default_configurations
@@ -62,7 +62,7 @@ class ConsulAdapter(object):
             raise TechnicalException(error_message)
 
     def create_instance_entry(self, instance_data: dict):
-        key = config.CONSUL_BASE_KEY + '/existing_instances'
+        key = config.CONFIG_BASE_KEY + '/existing_instances'
         existing_instances = self.get_existing_zeppelin_instance_data()
         if not existing_instances:
             existing_instances = []
@@ -76,7 +76,7 @@ class ConsulAdapter(object):
             raise TechnicalException(error_message)
 
     def remove_instance_entry(self, instance_id: str):
-        key = config.CONSUL_BASE_KEY + '/existing_instances'
+        key = config.CONFIG_BASE_KEY + '/existing_instances'
         try:
             existing_instances = json.loads(self.conn.get(key)[key])
             instance_index = -1

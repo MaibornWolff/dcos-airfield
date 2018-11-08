@@ -1,5 +1,6 @@
 apscheduler==3.5.3
 consul_kv==0.7.2
+python-etcd==0.4.5
 Flask==1.0.2
 Flask-API==1.0
 Flask-Cors==3.0.6

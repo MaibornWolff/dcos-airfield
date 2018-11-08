@@ -35,7 +35,7 @@ The following setup guide assumes you have a running DC/OS cluster with enough a
 
 Airfield depends on a number of third party services that need to be running in your DC/OS environment:
 * Marathon-LB is used to expose started zeppelin instances. You must have a wildcard DNS entry pointing at the loadbalancer. Each instance will be available using a random name as a subdomain of your wildcard domain (see `AIRFIELD_BASE_HOST` below).
-* [Consul](https://www.consul.io/) is used to store the list of existing zeppelin instances (see `AIRFIELD_CONSUL_ENDPOINT` below). The base key is individually configurable, see the [config file](airfield-microservice/config.py) for details.
+* A Key-Value-Store to store the list of existing zeppelin instances. Currently supported are either [consul](https://www.consul.io/) or [etcd](https://coreos.com/etcd/). If you have neither installed we reccomend etcd as there is a [etcd package](https://universe.dcos.io/#/package/etcd/version/latest) available in the universe.
 
 
 Airfield requires access to the Marathon API to manage zeppelin instances. You need to create a serviceaccount for it:
@@ -50,7 +50,8 @@ We provide a [marathon app definition](marathon-deployment.json) for easy deploy
 
 The following settings need to be specified (see `TODO`s in the app definition):
 * `AIRFIELD_BASE_HOST`: Base DNS name to use for zeppelin instances (make sure its wildcard entry points towards your loadbalancer). Example: If you set it to `.zeppelin.mycorp` a zeppelin instance will be reachable via `<randomname>.zeppelin.mycorp`.
-* `AIRFIELD_CONSUL_ENDPOINT`: HTTP URL of your consul instance (for example `http://consul.marathon.l4lb.thisdcos.directory:8500`).
+* Either `AIRFIELD_CONSUL_ENDPOINT`: HTTP v1-Endpoint of your consul instance (for example `http://consul.marathon.l4lb.thisdcos.directory:8500/v1`)
+* or `AIRFIELD_ETCD_ENDPOINT`: `host:port` of your etcd instance (for example `etcd.marathon.l4lb.thisdcos.directory:2379`).
 * `DCOS_SERVICE_ACCOUNT_CREDENTIAL`: authorize Marathon access with service account. Change if you used a different secret.
 * `HAPROXY_0_VHOST`: URL you want Airfield to be reachable under (for example `airfield.mycorp`).
 
@@ -98,7 +99,7 @@ export FLASK_ENV=development
 
 # Set additional environment variables - see config.py
 # Run locally for development
-flask run
+AIRFIELD_CONSUL_ENDPOINT=http://localhost:8500/v1 AIRFIELD_BASE_HOST=example.com flask run
 ```
 
 ### Local Frontend
@@ -111,9 +112,6 @@ npm i
 
 # Run locally for development with mock server
 npm run dev
-
-# Run locally for development with backend server
-npm run dev-server
 
 # Build for production
 npm run build

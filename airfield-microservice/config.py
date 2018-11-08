@@ -12,7 +12,7 @@ The settings are grouped by topic:
 1. Required settings (Application will not start, if these are not set)
 2. General settings
 3. OpenID Connect settings
-4. Consul adapter settings
+4. Etcd adapter settings
 5. DC/OS authentication settings
 """
 import os
@@ -66,21 +66,23 @@ OIDC_ID_TOKEN_COOKIE_SECURE = os.getenv('AIRFIELD_OIDC_ID_TOKEN_COOKIE_SECURE', 
 OIDC_REQUIRE_VERIFIED_EMAIL = os.getenv('AIRFIELD_OIDC_REQUIRE_VERIFIED_EMAIL', False)
 
 # -------------------------------------------------------------------------------
-# 4. Consul adapter settings
+# 4. etcd adapter settings
 # -------------------------------------------------------------------------------
-CONSUL_ENDPOINT = os.getenv('AIRFIELD_CONSUL_ENDPOINT', 'http://localhost:8500/v1/')
+ETCD_ENDPOINT = os.getenv('AIRFIELD_ETCD_ENDPOINT')
+CONSUL_ENDPOINT = os.getenv('AIRFIELD_CONSUL_ENDPOINT')
 
-CONSUL_BASE_KEY = os.getenv('AIRFIELD_CONSUL_BASE_KEY', 'airfield')
+
+CONFIG_BASE_KEY = os.getenv('AIRFIELD_CONFIG_BASE_KEY', 'airfield')
 
 # -------------------------------------------------------------------------------
 # 5. DC/OS authentication settings
 # -------------------------------------------------------------------------------
-DCOS_SERVICE_ACCOUNT_CREDENTIAL = os.getenv('AIRFIELD_DCOS_SERVICE_ACCOUNT_CREDENTIAL', None)
+DCOS_SERVICE_ACCOUNT_CREDENTIAL = os.getenv('DCOS_SERVICE_ACCOUNT_CREDENTIAL', None)
 
-DCOS_LOGIN_URL = os.getenv('AIRFIELD_DCOS_LOGIN_URL',
+DCOS_LOGIN_URL = os.getenv('DCOS_LOGIN_URL',
                            'https://leader.mesos:443/acs/api/v1/auth/login')
 
-DCOS_BASE_URL = os.getenv('AIRFIELD_DCOS_BASE_URL', 'https://leader.mesos:443/')
+DCOS_BASE_URL = os.getenv('DCOS_BASE_URL', 'https://leader.mesos:443/')
 
 DCOS_USERNAME = os.getenv('DCOS_USERNAME', None)
 
