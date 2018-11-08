@@ -6,10 +6,10 @@ ENV LANG 'C.UTF-8'
 
 # copy codebase
 ENV BASEDIR "/dcos-airfield"
-RUN mkdir $BASEDIR
+RUN mkdir -p $BASEDIR/airfield-frontend
 COPY airfield-microservice/requirements.txt $BASEDIR/
 RUN pip install -r $BASEDIR/requirements.txt
-COPY airfield-frontend $BASEDIR/airfield-frontend
+COPY airfield-frontend/dist $BASEDIR/airfield-frontend/dist
 COPY airfield-microservice $BASEDIR/airfield-microservice
 
 # start backend

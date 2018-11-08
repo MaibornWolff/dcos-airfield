@@ -23,7 +23,7 @@ CONFIGURATION_ID_KEY = 'id'
 
 class AirfieldService(object):
     def __init__(self):
-        logging.info('Initializing ZeppelinHubService.')
+        logging.info('Initializing AirfieldService.')
         logging.debug('Creating background scheduler.')
         self.scheduler = BackgroundScheduler()
         logging.debug('Starting background scheduler.')
