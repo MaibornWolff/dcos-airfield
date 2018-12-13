@@ -3,7 +3,6 @@
 
 #  standard imports
 import json
-import os
 import time
 import jwt
 import logging
@@ -17,6 +16,13 @@ import config
 
 DCOS_CLI_TOKEN_SUBPROCESS = ["dcos", "config", "show", "core.dcos_acs_token"]
 DCOS_CLI_URL_SUBPROCESS = ["dcos", "config", "show", "core.dcos_url"]
+
+
+class DummyAuth(AuthBase):
+    """Dummy mode that does not do any authentication"""
+
+    def __call__(self, auth_request):
+        return auth_request
 
 
 class StaticTokenAuth(AuthBase):
@@ -150,8 +156,8 @@ def retrieve_auth():
         base_url = config.DCOS_BASE_URL
         return base_url, UsernamePasswordAuth(username, password, login_url)
     else:
-        logging.debug('Using token-based authentication.')
         token = get_dcos_token_from_cli()
         if not token:
-            raise Exception("No credentials provided")
+            return config.DCOS_BASE_URL, DummyAuth()
+        logging.debug('Using token-based authentication.')
         return get_dcos_url_from_cli(), StaticTokenAuth(token)

@@ -1,8 +1,8 @@
 {
   "id": "airfield",
   "instances": 1,
-  "cpus": 2,
-  "mem": 2048,
+  "cpus": 0.5,
+  "mem": 512,
   "container": {
     "type": "MESOS",
     "portMappings": [
@@ -15,8 +15,7 @@
   },
   "networks": [
     {
-      "name": "dcos",
-      "mode": "container"
+      "mode": "container/bridge"
     }
   ],
   "healthChecks": [{

@@ -10,33 +10,38 @@ The application consists of a micro service written in Flask and a User Interfac
 #### Version
 Airfield is currently under active development. Docker images based on the current master are available from [DockerHub](https://hub.docker.com/r/maibornwolff/airfield/).
 
-#### License
-Apache License Version 2.0
 
 ## Deployment
-The following setup guide assumes you have a running DC/OS cluster with enough available resources to run both Airfield and some Zeppelin instances.
 
-Airfield depends on a number of third party services that need to be running in your DC/OS environment:
-* Marathon-LB is used to expose started zeppelin instances. You must have a wildcard DNS entry pointing at the loadbalancer. Each instance will be available using a random name as a subdomain of your wildcard domain (see `AIRFIELD_BASE_HOST` below).
+### Requirements
+* DC/OS 1.11 or later
+* Marathon-LB
+* A wildcard DNS entry pointing at the loadbalancer. Each instance will be available using a random name as a subdomain of your wildcard domain.
 * A Key-Value-Store to store the list of existing zeppelin instances. Currently supported are either [consul](https://www.consul.io/) or [etcd](https://coreos.com/etcd/). If you have neither installed we reccomend etcd as there is a [etcd package](https://universe.dcos.io/#/package/etcd/version/latest) available in the universe.
+* Enough available resources to run both Airfield and some Zeppelin instances (minimum: 3 cores, 10GB RAM).
 
-
-Airfield requires access to the Marathon API to manage zeppelin instances. You need to create a serviceaccount for it:
-```
+Airfield requires access to the Marathon API to manage zeppelin instances.
+If you are running DC/OS Enterprise you need to create a serviceaccount for airfield:
+```bash
 dcos security org service-accounts keypair private-key.pem public-key.pem
 dcos security org service-accounts create -p public-key.pem -d "Airfield service account" airfield-principal
 dcos security secrets create-sa-secret --strict private-key.pem airfield-principal airfield/account-secret
 dcos security org groups add_user superusers airfield-principal
 ```
 
+### Package / Universe
+work in progress
+
+### Standalone Marathon App
 We provide a [marathon app definition](marathon-deployment.json) for easy deployment.
 
 The following settings need to be specified (see `TODO`s in the app definition):
 * `AIRFIELD_BASE_HOST`: Base DNS name to use for zeppelin instances (make sure its wildcard entry points towards your loadbalancer). Example: If you set it to `.zeppelin.mycorp` a zeppelin instance will be reachable via `<randomname>.zeppelin.mycorp`.
 * Either `AIRFIELD_CONSUL_ENDPOINT`: HTTP v1-Endpoint of your consul instance (for example `http://consul.marathon.l4lb.thisdcos.directory:8500/v1`)
 * or `AIRFIELD_ETCD_ENDPOINT`: `host:port` of your etcd instance (for example `etcd.marathon.l4lb.thisdcos.directory:2379`).
-* `DCOS_SERVICE_ACCOUNT_CREDENTIAL`: authorize Marathon access with service account. Change if you used a different secret.
-* `HAPROXY_0_VHOST`: URL you want Airfield to be reachable under (for example `airfield.mycorp`).
+* If running DC/OS EE: `DCOS_SERVICE_ACCOUNT_CREDENTIAL`: authorize Marathon access with service account. Change if you used a different secret.
+* If running DC/OS OpenSource: `DCOS_BASE_URL`. Set it to `http://leader.mesos`
+* Label `HAPROXY_0_VHOST`: URL you want Airfield to be reachable under (for example `airfield.mycorp`).
 
 There a number of optional settings for Airfield that you can set using environment variables (see the [config file](airfield-microservice/config.py) for a complete list):
 * Airfield will put all zeppelin instances into the marathon app group `airfield-zeppelin` by default. Set `AIRFIELD_MARATHON_APP_GROUP` to override it. Set it to an empty string to make airfield deploy all instances on the root level.
