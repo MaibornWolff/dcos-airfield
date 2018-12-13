@@ -6,23 +6,6 @@ Airfield is an open source tool for the DC/OS ecosystem that enables teams to ea
 
 The application consists of a micro service written in Flask and a User Interface written in Vue. It was developed and is being maintained by [MaibornWolff](https://www.maibornwolff.de/).
 
-* [Version](#version)
-* [License](#license)
-1. [Setup](#setup)
-    * [Marathon and Marathon-LB](#marathon-and-marathon-lb)
-    * [Consul](#consul)
-    * [Prometheus](#prometheus)
-    * [Optional Settings](#optional-settings)
-2. [Deployment](#deployment)
-3. [Usage](#usage)
-    * [Create new Zeppelin Instance](#create-new-zeppelin-instance)
-    * [Modify existing Zeppelin Instances](#modify-existing-zeppelin-instances)
-    * [Use a running Zeppelin Instance](#use-a-running-zeppelin-instance)
-4. [Further Development](#further-development)
-    * [Development Environment with docker-compose](#development-environment-with-docker-compose)
-    * [Local Backend](#local-backend)
-    * [Local Frontend](#local-frontend)
-5. [Roadmap](#roadmap)
 
 #### Version
 Airfield is currently under active development. Docker images based on the current master are available from [DockerHub](https://hub.docker.com/r/maibornwolff/airfield/).

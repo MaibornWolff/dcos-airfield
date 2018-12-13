@@ -7,6 +7,7 @@ Flask-Cors==3.0.6
 Flask-Log-Request-ID==0.10.0
 flask-oidc==1.4.0
 gunicorn==19.9.0
-jwt==0.5.4
+PyJWT==1.7.1
 prometheus-client==0.4.2
 requests==2.20.0
+cryptography==2.4.2

@@ -4,19 +4,21 @@
   "cpus": 2,
   "mem": 2048,
   "container": {
-  "type": "MESOS",
-  "portMappings": [
-    {"containerPort": 5000}
-  ],
-  "docker": {
+    "type": "MESOS",
+    "portMappings": [
+      {"containerPort": 5000}
+    ],
+    "docker": {
         "image": "maibornwolff/airfield:dev",
         "forcePullImage": true
-      }
+    }
   },
-  "networks": [{
-    "name": "dcos",
-    "mode": "container"
-  }],
+  "networks": [
+    {
+      "name": "dcos",
+      "mode": "container"
+    }
+  ],
   "healthChecks": [{
       "protocol": "MESOS_HTTP",
       "path": "/",

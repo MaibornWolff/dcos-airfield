@@ -16,4 +16,4 @@ COPY airfield-microservice $BASEDIR/airfield-microservice
 WORKDIR $BASEDIR/airfield-microservice/
 
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "30", "app:create_app()"]

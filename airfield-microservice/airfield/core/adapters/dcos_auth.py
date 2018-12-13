@@ -141,7 +141,7 @@ def retrieve_auth():
     if config.DCOS_SERVICE_ACCOUNT_CREDENTIAL is not None:
         logging.debug('Using service account authentication.')
         return config.DCOS_BASE_URL, \
-               DCOSAuth(os.environ.get(config.DCOS_SERVICE_ACCOUNT_CREDENTIAL), None)
+               DCOSAuth(config.DCOS_SERVICE_ACCOUNT_CREDENTIAL, None)
     elif config.DCOS_USERNAME is not None:
         logging.debug('Using user-password based authentication.')
         username = config.DCOS_USERNAME
