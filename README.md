@@ -8,7 +8,7 @@ The application consists of a micro service written in Flask and a User Interfac
 
 
 #### Version
-Airfield is currently under active development. Docker images based on the current master are available from [DockerHub](https://hub.docker.com/r/maibornwolff/airfield/).
+Airfield is currently under active development. See the releases page for a list of versions.
 
 
 ## Deployment
@@ -16,9 +16,9 @@ Airfield is currently under active development. Docker images based on the curre
 ### Requirements
 * DC/OS 1.11 or later
 * Marathon-LB
-* A wildcard DNS entry pointing at the loadbalancer. Each instance will be available using a random name as a subdomain of your wildcard domain.
-* A Key-Value-Store to store the list of existing zeppelin instances. Currently supported are either [consul](https://www.consul.io/) or [etcd](https://coreos.com/etcd/). If you have neither installed we reccomend etcd as there is a [etcd package](https://universe.dcos.io/#/package/etcd/version/latest) available in the universe.
-* Enough available resources to run both Airfield and some Zeppelin instances (minimum: 3 cores, 10GB RAM).
+* A wildcard DNS entry pointing at the loadbalancer. Each zeppelin instance will be available using a random name as a subdomain of your wildcard domain. As an example we will be using `*.zeppelin.mycorp`.
+* A Key-Value-Store to store the list of existing zeppelin instances. Currently supported are either [consul](https://www.consul.io/) or [etcd](https://coreos.com/etcd/). If you have neither installed we recommend our [consul package](https://github.com/MaibornWolff/dcos-consul).
+* Enough available resources to run both Airfield and one Zeppelin instance (minimum: 3 cores, 10GB RAM).
 
 Airfield requires access to the Marathon API to manage zeppelin instances.
 If you are running DC/OS Enterprise you need to create a serviceaccount for airfield:
@@ -30,7 +30,50 @@ dcos security org groups add_user superusers airfield-principal
 ```
 
 ### Package / Universe
-work in progress
+We are working on getting airfield into the [Mesosphere Universe](https://universe.dcos.io). For testing purposes you can find downloads for a stub-universe on the releases page.
+
+First create a file `options.json`.
+For DC/OS EE clusters you need at least the following (change values to fit your cluster):
+```json
+{
+  "service": {
+    "marathon_lb_vhost": "airfield.mycorp",
+    "service_account_secret": "airfield/account-secret"
+  },
+  "airfield": {
+    "marathon_lb_base_host": ".zeppelin.mycorp",
+    "consul_endpoint": "http://api.aconsul.l4lb.thisdcos.directory:8500/v1"
+  }
+}
+```
+
+For DC/OS Open Source you need at least the following (change values to fit your cluster):
+```json
+{
+  "service": {
+    "marathon_lb_vhost": "airfield.mycorp"
+  },
+  "airfield": {
+    "marathon_lb_base_host": ".zeppelin.mycorp",
+    "consul_endpoint": "http://api.aconsul.l4lb.thisdcos.directory:8500/v1",
+    "dcos_base_url": "http://leader.mesos"
+  }
+}
+```
+
+The following config parameters are optional:
+* `service.virtual_network_enabled` and `service.virtual_network_name` if you want to run airfield in a virtual network
+* `airfield.etcd_endpoint` if you want to use etcd instead of consul
+* `airfield.app_group` if you want airfield to put the zeppelin instances into a different marathon app group
+* `airfield.config_base_key` if you want airfield to use a different key prefix for consul/etcd
+
+Then you can install airfield using the following commands:
+
+```bash
+dcos package install airfield --options=options.json
+```
+
+Wait for it to finish installing, then access airfield via the vhost you provided (`airfield.mycorp` in the example).
 
 ### Standalone Marathon App
 We provide a [marathon app definition](marathon-deployment.json) for easy deployment.
