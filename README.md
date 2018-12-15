@@ -7,10 +7,6 @@ Airfield is an open source tool for the DC/OS ecosystem that enables teams to ea
 The application consists of a micro service written in Flask and a User Interface written in Vue. It was developed and is being maintained by [MaibornWolff](https://www.maibornwolff.de/).
 
 
-#### Version
-Airfield is currently under active development. See the releases page for a list of versions.
-
-
 ## Deployment
 
 ### Requirements
@@ -30,7 +26,7 @@ dcos security org groups add_user superusers airfield-principal
 ```
 
 ### Package / Universe
-We are working on getting airfield into the [Mesosphere Universe](https://universe.dcos.io). For testing purposes you can find downloads for a stub-universe on the releases page.
+Airfield is available in the [DC/OS Universe](https://universe.dcos.io).
 
 First create a file `options.json`.
 For DC/OS EE clusters you need at least the following (change values to fit your cluster):
