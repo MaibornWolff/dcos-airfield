@@ -1,0 +1,14 @@
+{
+  "web": {
+    "client_id": "aa1a6242-3ff1-4946-8a35-ce3026ad5f9b",
+    "client_secret": "secret",
+    "auth_uri": "http://localhost:8080/auth/realms/airfield/protocol/openid-connect/auth",
+    "token_uri": "http://localhost:8080/auth/realms/airfield/protocol/openid-connect/token",
+    "userinfo_uri": "http://localhost:8080/auth/realms/airfield/protocol/openid-connect/userinfo",
+    "token_introspection_uri": "http://localhost:8080/auth/realms/airfield/protocol/openid-connect/token/introspect",
+    "redirect_uris": [
+      "http://localhost:5000/oidc_callback"
+    ],
+    "issuer": "http://localhost:8080/auth/realms/airfield"
+  }
+}

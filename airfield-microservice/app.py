@@ -20,6 +20,7 @@ from flask_api import FlaskAPI
 from flask_oidc import OpenIDConnect
 from prometheus_client import Counter
 from flask_log_request_id import RequestID, RequestIDLogFilter
+from base64 import b64decode
 # custom imports
 import config
 
@@ -51,6 +52,13 @@ def create_app():
         logging.error(e)
         sys.exit(-1)
     logging.info('Config is valid...')
+    if config.OIDC_ACTIVATED:
+        logging.info('Activating OpenID Connect...')
+        if config.OIDC_CLIENT_SECRETS_FILE is not None:
+            with open(config.OIDC_CLIENT_SECRETS, "wb") as fh:
+                fh.write(b64decode(config.OIDC_CLIENT_SECRETS_FILE))
+        oidc.init_app(app)
+        logging.info('OpenID Connect activated.')
     logging.info('Configuring CORS...')
     CORS(app)
     logging.info('CORS configured.')

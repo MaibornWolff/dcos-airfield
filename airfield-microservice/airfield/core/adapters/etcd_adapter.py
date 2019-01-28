@@ -4,13 +4,14 @@
 #  standard imports
 import json
 import logging
+from uuid import uuid4
+import time
 # third party imports
 from prometheus_client import Counter
 import etcd
 # custom imports
 import config
 from airfield.utility import TechnicalException
-
 
 ID_KEY = 'id'
 
@@ -36,7 +37,95 @@ class EtcdAdapter(object):
             self.etcd_error_metric.inc()
             raise TechnicalException("etcd server cannot be reached.")
 
-    def get_existing_zeppelin_instance_data(self) -> dict:
+    def store_full_backup(self, instance_id, notebooks):
+        key = config.CONFIG_BASE_KEY + '/instance_backups/' + instance_id
+        try:
+            self.conn.write(key, json.dumps(notebooks))
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def retrieve_full_backup(self, instance_id):
+        key = config.CONFIG_BASE_KEY + '/instance_backups/' + instance_id
+        try:
+            return json.loads(self.conn.read(key).value)
+        except etcd.EtcdKeyNotFound:
+            return []
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def delete_backup(self, instance_id):
+        key = config.CONFIG_BASE_KEY + '/instance_backups/' + instance_id
+        try:
+            self.conn.delete(key)
+            return True
+        except etcd.EtcdKeyNotFound:
+            return False
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def get_notebook_index(self):
+        key = config.CONFIG_BASE_KEY + '/notebook/index'
+        try:
+            return json.loads(self.conn.read(key).value)
+        except etcd.EtcdKeyNotFound:
+            return {}
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def store_notebook(self, notebook, user):
+        key = config.CONFIG_BASE_KEY + '/notebook'
+        notebook_id = str(uuid4())
+        try:
+            self.conn.write(key + '/' + notebook_id, json.dumps(notebook))
+            index = self.get_notebook_index()
+            index[notebook_id] = {
+                "created_at": time.time(),
+                "name": notebook["name"],
+                "id": notebook_id,
+                "creator": user
+            }
+            self.conn.write(key + '/index', json.dumps(index))
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def delete_notebook(self, notebook_id):
+        key = config.CONFIG_BASE_KEY + '/notebook'
+        index = self.get_notebook_index()
+        if notebook_id in index:
+            del index[notebook_id]
+        else:
+            return False
+        try:
+            self.conn.delete(key + '/' + notebook_id)
+            self.conn.write(key + '/index', json.dumps(index))
+            return True
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def retrieve_notebook(self, notebook_id):
+        key = config.CONFIG_BASE_KEY + '/notebook/' + notebook_id
+        try:
+            return json.loads(self.conn.read(key).value)
+        except etcd.EtcdKeyNotFound:
+            return {}
+        except Exception as e:
+            logging.error(e)
+            self.etcd_error_metric.inc()
+            raise TechnicalException("etcd server cannot be reached.")
+
+    def get_existing_zeppelin_instances_data(self) -> dict:
         key = config.CONFIG_BASE_KEY + '/existing_instances'
         try:
             return json.loads(self.conn.read(key).value)
@@ -46,6 +135,13 @@ class EtcdAdapter(object):
             logging.error(e)
             self.etcd_error_metric.inc()
             raise TechnicalException("etcd server cannot be reached.")
+
+    def get_existing_zeppelin_instance_data(self, instance_id: str):
+        instances = self.get_existing_zeppelin_instances_data()
+        for instance in instances:
+            if instance["id"] == instance_id:
+                return instance
+        return None
 
     def get_zeppelin_default_configuration_data(self):
         key = config.CONFIG_BASE_KEY + '/default_configs'
@@ -60,10 +156,20 @@ class EtcdAdapter(object):
 
     def create_instance_entry(self, instance_data: dict):
         key = config.CONFIG_BASE_KEY + '/existing_instances'
-        existing_instances = self.get_existing_zeppelin_instance_data()
+        existing_instances = self.get_existing_zeppelin_instances_data()
         if not existing_instances:
             existing_instances = []
-        existing_instances.append(instance_data)
+        # check if instance was redeployed - and update entry in that case
+        found = False
+        for index, instance in enumerate(existing_instances):
+            if instance["id"] == instance_data["id"]:
+                existing_instances[index] = instance_data
+                logging.debug("Updating existing instance in database")
+                found = True
+                break
+        if not found:
+            logging.debug("Adding new instance to database")
+            existing_instances.append(instance_data)
         try:
             self.conn.write(key, json.dumps(existing_instances))
         except Exception as e:
@@ -74,7 +180,7 @@ class EtcdAdapter(object):
     def remove_instance_entry(self, instance_id: str):
         key = config.CONFIG_BASE_KEY + '/existing_instances'
         try:
-            existing_instances = self.get_existing_zeppelin_instance_data()
+            existing_instances = self.get_existing_zeppelin_instances_data()
             instance_index = -1
             for idx, instance in enumerate(existing_instances):
                 if instance[ID_KEY] == instance_id:

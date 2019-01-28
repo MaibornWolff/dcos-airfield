@@ -91,6 +91,16 @@ Once you have configured the desired settings, you can deploy the application wi
 dcos marathon app add marathon-deployment.json
 ```
 
+### OpenID Connect
+You can protect Airfield via OpenID Connect. The following steps will setup a keycloak OpenID Connect authentication provider and connect it to Airfield.
+1. Install your favourite version of keycloak, e.g. by running the provided ``docker-compose-dev.yml``
+2. Create a new realm (in this example: airfield)
+3. Create a role, a user and add the user to the role (you have to set the user's password manually)
+4. Register a new client, enable authorisation and set valid redirect URIs
+5. Adapt the provided ``resources/keycloak_example.json`` with the values from Realm Settings - OpenID endpoint configuration and the created client
+6. Encode the created json base64 with ``base64 -wc 0 file.json`` to provide `AIRFIELD_OIDC_SECRET_FILE` or set `AIRFIELD_OIDC_SECRET_FILE_PATH`
+7. Run with ``AIRFIELD_OIDC_ACTIVATED=1`` and `AIRFIELD_OIDC_SECRET_FILE` or `AIRFIELD_OIDC_SECRET_FILE_PATH`
+
 ## Usage
 Airfield has a simple user interface that allows to interact with existing Zeppelin instances or create new instances with custom options.
 ### Create new Zeppelin Instance
@@ -102,7 +112,8 @@ Simply select the desired instance type to load its default configuration. You c
 ### Interact with a running Zeppelin Instance
 ![Airfield Main Screen](img/airfield_base.png)
 
-Airfield lists all existing instances on the main screen. Besides being able to start, stop, restart or delete existing instances, the URL to the instance is also shown.
+Airfield lists all existing instances on the main screen. Besides being able to start, stop, restart or delete existing instances, the URL to the instance is also shown. Even though the instance will be
+recreated during most of the operations, notes will persist thanks to automatic import/export through Airfield.
 
 ## Further Development
 ### Development Environment with docker-compose
@@ -111,13 +122,20 @@ The default values for the environment variables have been configured to use the
 
 You will still need a running DC/OS cluster to deploy your application for testing.
 ### Local Backend
-You need python >= 3.5 and an installed and configured dcos-cli (airfield uses the cli to get your cluster URL and an authentication token).
+You need python >= 3.6 and an installed and configured dcos-cli (airfield uses the cli to get your cluster URL and an authentication token).
 
 ```bash
+# Start consul in Docker container
+docker run -d --rm --name=dev-consul -e CONSUL_BIND_INTERFACE=lo --net=host consul
+
+# build frontend (at least once)
+cd airfield-frontend && npm i && npm run build && cd ..
+
 cd airfield-microservice
 
 # Optional: use virtualenv
-mkvirtualenv airfield --python=/usr/bin/python3
+virtualenv airfield --python=/usr/bin/python3
+source airfield/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -130,6 +148,7 @@ export FLASK_ENV=development
 # Run locally for development
 AIRFIELD_CONSUL_ENDPOINT=http://localhost:8500/v1 AIRFIELD_BASE_HOST=example.com flask run
 ```
+The Application will start on port 5000.
 
 ### Local Frontend
 Install the latest version of node.js.
@@ -152,11 +171,9 @@ npm run lint
 ## Roadmap
 The current release contains all basic functionality to collaborate with shared Zeppelin instances. Below is a list of future additions that will probably be included in a future release. Of course we can't give any guarantees :-)
 
-* Securing the application with OIDC
 * Usability improvements (only show creatable instances, allow adding GPUs to the instance, etc.)
 * Adding notebook templates to be created automatically on instance start
 * Deployment as DC/OS package
 * Build PR for DC/OS universe
 * Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in staging
 * Allow integration with dynamically scaling the DC/OS cluster
-* Protect zeppelin instances with user / password

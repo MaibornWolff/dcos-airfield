@@ -8,6 +8,8 @@ from enum import Enum
 class ApiResponseStatus(Enum):
     SUCCESS = 200
     INTERNAL_ERROR = 500
+    NOT_FOUND = 404
+    CONFLICT = 409
 
 
 class ApiResponse(object):

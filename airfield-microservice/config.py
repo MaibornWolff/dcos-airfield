@@ -46,17 +46,21 @@ LOGGING_LEVEL = os.getenv('AIRFIELD_LOGGING_LEVEL', 'INFO')
 
 MARATHON_APP_GROUP = os.getenv("AIRFIELD_MARATHON_APP_GROUP", "airfield-zeppelin")
 
+HDFS_CONFIG_FOLDER = os.getenv("AIRFIELD_HDFS_CONFIG_FOLDER", "").rstrip("/")
+
 # -------------------------------------------------------------------------------
 # 3. OpenID Connect settings
 # -------------------------------------------------------------------------------
 OIDC_CLIENT_SECRETS = os.getenv('AIRFIELD_OIDC_SECRET_FILE_PATH', 'airfield/resources/keycloak.json')
 
-OIDC_SECRET_KEY = os.getenv('AIRFIELD_OIDC_SECRET_KEY', 'i-love-airfield')
+OIDC_CLIENT_SECRETS_FILE = os.getenv('AIRFIELD_OIDC_SECRET_FILE', None)
+
+SECRET_KEY = os.getenv('AIRFIELD_OIDC_SECRET_KEY', 'i-love-airfield')  # this can be set at random
 
 OIDC_ACTIVATED = os.getenv('AIRFIELD_OIDC_ACTIVATED', False)
 
 """
-    Only supports one valid issuer at this time because env variables are key-value with no array support.
+    See https://flask-oidc.readthedocs.io/en/latest/ for documentation of the following variables
     """
 OIDC_VALID_ISSUER = os.getenv('AIRFIELD_OIDC_VALID_ISSUERS',
                               'http://localhost:8080/auth/realms/airfield')

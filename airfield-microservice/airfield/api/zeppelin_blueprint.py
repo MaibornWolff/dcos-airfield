@@ -15,83 +15,137 @@ from app import oidc
 
 ZeppelinBlueprint = Blueprint('zeppelin', __name__)
 airfield_service = AirfieldService()
+airfield_requests_metrics = Counter('airfield_requests_total', 'HTTP Requests', ['endpoint', 'method'])
 
 
-airfield_requests_metrics = Counter('airfield_requests_total', 'HTTP Requests', ['endpoint'])
+def login_if_oidc(func):  # applies the decorator only if oidc is enabled
+    if not config.OIDC_ACTIVATED:
+        return func
+    else:
+        return oidc.require_login(func)
 
 
-@ZeppelinBlueprint.route('/instance/state/<instance_id>', methods=['GET'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance/<instance_id>/state', methods=['GET'])
+@login_if_oidc
 def get_zeppelin_server_state(instance_id):
     instance_id = clean_input_string(instance_id)
     response = airfield_service.get_zeppelin_instance_status(instance_id)
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/state/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/state/', method="GET").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/configurations', methods=['GET'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/configurations', methods=['GET'])
+@login_if_oidc
 def get_zeppelin_default_configurations():
     response = airfield_service.get_zeppelin_default_configurations()
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/configurations/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/configurations/', method="GET").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/retrieve/all', methods=['GET'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance', methods=['GET'])  # get all
+@login_if_oidc
 def get_zeppelin_instances():
     response = airfield_service.get_existing_zeppelin_instances()
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/retrieve/all').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance', method="GET").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/create', methods=['POST'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance', methods=['POST'])  # create
+@login_if_oidc
 def create_zeppelin_instance():
     logging.debug('request data: {}'.format(request.data))
     instance_configuration = request.data
     response = airfield_service.create_zeppelin_instance(instance_configuration)
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/create/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="GET").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/delete/<instance_id>', methods=['PUT'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance/<instance_id>', methods=['DELETE'])
+@login_if_oidc
 def delete_instance(instance_id):
     instance_id = clean_input_string(instance_id)
     response = airfield_service.delete_zeppelin_instance(instance_id)
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/delete/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="DELETE").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/restart/<instance_id>', methods=['PUT'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance/<instance_id>', methods=['PUT'])  # redeploy
+@login_if_oidc
+def redeploy_instance(instance_id):
+    response = airfield_service.create_zeppelin_instance(request.data, instance_id)
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="PUT").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/instance/<instance_id>/action/restart', methods=['POST'])
+@login_if_oidc
 def restart_instance(instance_id):
     instance_id = clean_input_string(instance_id)
     response = airfield_service.restart_zeppelin_instance(instance_id)
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/restart/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/action/restart/', method="POST").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/start/<instance_id>', methods=['PUT'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance/<instance_id>/action/start', methods=['POST'])
+@login_if_oidc
 def start_instance(instance_id):
     instance_id = clean_input_string(instance_id)
     response = airfield_service.start_zeppelin_instance(instance_id)
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/start/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/action/start/', method="POST").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/stop/<instance_id>', methods=['PUT'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@ZeppelinBlueprint.route('/instance/<instance_id>/action/stop', methods=['POST'])
+@login_if_oidc
 def stop_instance(instance_id):
     instance_id = clean_input_string(instance_id)
     response = airfield_service.stop_zeppelin_instance(instance_id)
-    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/stop/').inc()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/action/stop/', method="POST").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/notebook', methods=['GET'])
+@login_if_oidc
+def get_stored_notebooks():
+    response = airfield_service.get_stored_notebooks()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/notebook', method="GET").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/instance/<instance_id>/notebook', methods=['GET'])
+@login_if_oidc
+def get_instance_notebooks(instance_id):
+    response = airfield_service.get_instance_notebooks(instance_id)
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/notebook', method="GET").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/notebook', methods=['POST'])
+@login_if_oidc
+def export_notebook():
+    username = oidc.user_getfield('preferred_username') if config.OIDC_ACTIVATED else "anonymous"
+    response = airfield_service.export_notebook(request.data["data"], username, request.args.get('force'))
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/notebook', method="POST").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/instance/<instance_id>/notebook/<notebook_id>', methods=['POST'])
+@login_if_oidc
+def import_notebook(instance_id, notebook_id):
+    response = airfield_service.import_notebook(notebook_id, instance_id)
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/notebook', method="POST").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/notebook/<notebook_id>', methods=['DELETE'])
+@login_if_oidc
+def delete_notebook(notebook_id):
+    response = airfield_service.delete_notebook(notebook_id)
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/notebook', method="DELETE").inc()
     return response.to_json(), response.status.value
 
 
 @ZeppelinBlueprint.route('/metrics', methods=['GET'])
-@oidc.accept_token(require_token=config.OIDC_ACTIVATED)
+@login_if_oidc
 def metrics():
     return Response(generate_latest())

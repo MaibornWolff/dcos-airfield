@@ -58,6 +58,38 @@
                 <label class="mt-0">Custom libraries (separate with ";")</label>
                 <b-form-input v-model="additionalRLibraries"></b-form-input>
             </b-tab>
+
+            <b-tab title="Security">
+                <b-container class="mt-4">
+                    <b-row>
+                        <b-form-group label="Generate users/passwords on startup">
+                            <b-form-radio-group buttons
+                                                v-model="selectedNewInstance.configuration.usermanagement"
+                                                :options="options"
+                                                name="usermanagement"></b-form-radio-group>
+                        </b-form-group>
+                    </b-row>
+                </b-container>
+                <b-container v-if="selectedNewInstance.configuration.usermanagement !== 'no' ">
+                    <b-row v-for="(user, index) in selectedNewInstance.configuration.users" :key="index" class="mt-1 alignedRow">
+                        <b-col>
+                            <b-form-input v-model="user.username" placeholder="Username"></b-form-input>
+                        </b-col>
+                        <b-col v-if="selectedNewInstance.configuration.usermanagement === 'manual'">
+                            <b-form-input v-model="user.password" placeholder="Password"></b-form-input>
+                        </b-col>
+                        <b-col>
+                            <fa @click="deleteRow(user)" icon="trash-alt" class="deleteBtn"></fa>
+                        </b-col>
+                    </b-row>
+                    <b-row class="alignedRow mt-2" v-if="checkShowAdd">
+                        <b-col>
+                            <button class="btn" @click="addRow()">Add new user</button>
+                        </b-col>
+                    </b-row>
+                </b-container>
+            </b-tab>
+            
         </b-tabs>
 
         <br>
@@ -91,12 +123,38 @@
         components: {
             CreateInstanceButton
         },
+        data() {
+            return {
+                options: [
+                    { text: 'No Users', value: 'no' },
+                    { text: 'Manual', value: 'manual' },
+                    { text: 'Random', value: 'random' }
+                ]
+            };
+        },
 
         computed: {
             ...mapGetters(['selectedNewInstance']),
+            checkShowAdd() {
+                const users = this.selectedNewInstance.configuration.users;
+                if (users.length === 0) {
+                    return true;
+                }
+                const lastUser = users[users.length - 1];
+                return (this.selectedNewInstance.configuration.usermanagement && lastUser.username !== '' || lastUser.password !== '');
+            },
 
             additionalPythonLibraries: libraryAccessor('Python'),
             additionalRLibraries: libraryAccessor('R')
+        },
+        methods: {
+            addRow() {
+                this.selectedNewInstance.configuration.users.push({ username: '', password: '' });
+            },
+            deleteRow(user) {
+                const users = this.selectedNewInstance.configuration.users;
+                users.splice(users.indexOf(user), 1);
+            }
         }
     };
 </script>
@@ -120,4 +178,11 @@
         margin: 20px 0 10px;
         font-weight: bold;
     }
+    
+    .deleteBtn {
+        margin-top: 0.6rem;
+        cursor: pointer;
+        color: $delete-btn-color;
+    }
+    
 </style>

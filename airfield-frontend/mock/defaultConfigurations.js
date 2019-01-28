@@ -16,10 +16,18 @@ module.exports = [{
             language: 'R',
             libraries: []
         }],
-        mem: 8192
+        mem: 8192,
+        usermanagement: 'manual',
+        users: [{
+            username: 'admin',
+            password: 'admin'
+        }, {
+            username: 'guest',
+            password: 'guest'
+        }]
     },
     icon: 'small',
-    id: 1,
+    template_id: 1,
     tags: ['Small', 'No Libs'],
     title: 'Small'
 }, {
@@ -40,10 +48,15 @@ module.exports = [{
             language: 'R',
             libraries: []
         }],
-        mem: 32768
+        mem: 16384,
+        usermanagement: 'random',
+        users: [{
+            username: 'admin',
+            password: ''
+        }]
     },
     icon: 'medium',
-    id: 2,
+    template_id: 2,
     tags: ['Medium', 'No Libs'],
     title: 'Medium'
 }, {
@@ -64,10 +77,12 @@ module.exports = [{
             language: 'R',
             libraries: []
         }],
-        mem: 32768
+        mem: 32768,
+        usermanagement: 'no',
+        users: []
     },
     icon: 'large',
-    id: 3,
+    template_id: 3,
     tags: ['Large', 'No Libs'],
     title: 'Large'
 }];

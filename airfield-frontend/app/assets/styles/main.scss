@@ -5,3 +5,13 @@ html, body {
     font-family: 'Open Sans', sans-serif;
     font-size: 14px;
 }
+
+.buttonCol {
+    line-height: 2.5;
+    margin-top: -0.4rem;
+}
+
+.modal-open { // fix modal open creates padding-right on body
+    padding-right: 0px !important;
+    overflow: auto !important
+}

@@ -2,21 +2,18 @@ import Server from '@/server';
 
 export default {
     state: {
-        securityEnabled: false,
-        securityToken: '',
         defaultConfigurations: [],
         selectedNewInstance: { },
-
-        existingInstances: []
+        existingInstances: [],
+        storedNotebooks: []
     },
 
     getters: {
-        securityEnabled: state => state.securityEnabled,
         defaultConfigurations: state => state.defaultConfigurations,
         selectedNewInstance: state => state.selectedNewInstance,
-        isNewInstanceSelected: state => state.selectedNewInstance.hasOwnProperty('id'),
-
-        existingInstances: state => state.existingInstances
+        isNewInstanceSelected: state => state.selectedNewInstance.hasOwnProperty('template_id'),
+        existingInstances: state => state.existingInstances,
+        storedNotebooks: state => state.storedNotebooks
     },
 
     actions: {
@@ -38,6 +35,22 @@ export default {
         selectNewInstance({ commit }, instance) {
             commit('SET_NEW_SELECTED_INSTANCE', JSON.parse(JSON.stringify(instance)));
         },
+        
+        async findInstance({ commit, state }, instanceId) {
+            if (state.existingInstances.length > 0) {
+                let selectedInstance = {};
+                for (const instance of state.existingInstances) {
+                    if (instanceId === instance.id) {
+                        selectedInstance = JSON.parse(JSON.stringify(instance));
+                        if (selectedInstance.configuration.usermanagement === 'random') { // passwords have already been generated
+                            selectedInstance.configuration.usermanagement = 'manual';
+                        }
+                        break;
+                    }
+                }
+                commit('SET_NEW_SELECTED_INSTANCE', selectedInstance);
+            }
+        },
 
         resetNewInstance({ commit }) {
             commit('SET_NEW_SELECTED_INSTANCE', { });
@@ -57,13 +70,18 @@ export default {
 
         resetExistingInstances({ commit }) {
             commit('SET_EXISTING_INSTANCES', []);
+        },
+        
+        async loadStoredNotebooks({ commit }) {
+            const data = await Server.getNotebooks().then(
+                response => {
+                    return response;
+                });
+            commit('SET_STORED_INSTANCES', data.notebooks);
         }
     },
 
     mutations: {
-        SET_SECURITY_ENABLED(state, data) {
-            state.securityEnabled = data;
-        },
         SET_DEFAULT_CONFIGURATIONS(state, data) {
             state.defaultConfigurations = data;
         },
@@ -74,6 +92,10 @@ export default {
 
         SET_EXISTING_INSTANCES(state, data) {
             state.existingInstances = data;
+        },
+        
+        SET_STORED_INSTANCES(state, data) {
+            state.storedNotebooks = data;
         }
     }
 };

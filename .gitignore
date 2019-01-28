@@ -266,3 +266,8 @@ venv.bak/
 
 
 # End of https://www.gitignore.io/api/node,python,pycharm+all,webstorm+all
+
+# directories of virtualenv
+airfield-microservice/airfield/bin/
+airfield-microservice/airfield/include/
+airfield-microservice/airfield/resources/keycloak.json

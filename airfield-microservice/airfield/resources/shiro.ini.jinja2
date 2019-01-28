@@ -1,0 +1,33 @@
+[users]
+# List of users with their password allowed to access Zeppelin.
+{%- for user in users %}
+{{ user["username"] }} = {{ user["password"] }}, admin
+{%- endfor %}
+
+[main]
+
+sessionManager = org.apache.shiro.web.session.mgt.DefaultWebSessionManager
+sha256Matcher = org.apache.shiro.authc.credential.Sha256CredentialsMatcher
+iniRealm.credentialsMatcher = $sha256Matcher
+securityManager.sessionManager = $sessionManager
+# 86,400,000 milliseconds = 24 hour
+securityManager.sessionManager.globalSessionTimeout = 86400000
+shiro.loginUrl = /api/login
+
+[roles]
+analyst = *
+admin = *
+
+
+[urls]
+# This section is used for url-based security.
+# You can secure interpreter, configuration and credential information by urls. Comment or uncomment the below urls that you want to hide.
+# anon means the access is anonymous.
+# authc means Form based Auth Security
+# To enfore security, comment the line below and uncomment the next one
+/api/version = anon
+/api/interpreter/** = authc, roles[admin]
+/api/configurations/** = authc, roles[admin]
+/api/credential/** = authc, roles[admin]
+#/** = anon
+/** = authc

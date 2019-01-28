@@ -1,5 +1,5 @@
 <template>
-    <loading-spinner v-if="isLoading" class="mt-3"></loading-spinner>
+    <loading-spinner v-if="isLoading && initLoading" class="mt-3"></loading-spinner>
     <b-card v-else class="m-3">
         <div slot="header" class="cardHeader">
             <div class="cardTitle">
@@ -9,7 +9,8 @@
 
             <div>
                 <b-button size="sm" @click="resetAndReload">
-                    <fa icon="sync"></fa> Refresh
+                    <fa icon="sync"></fa>
+                    Refresh
                 </b-button>
 
                 <b-button size="sm" variant="primary" to="/add">
@@ -23,27 +24,23 @@
             <template slot="status" slot-scope="props">
                 <span v-if="props.item.status">{{ props.item.status }}</span>
                 <fa icon="spinner" spin v-else></fa>
+                
+                <span v-if="props.item.status === 'DEPLOYING' && props.item.deployment_stuck" class="pl-1">
+                    <fa icon="exclamation-triangle" class="text-danger" v-b-tooltip.hover.right :title="'Running for ' + props.item.stuck_duration + 'min, try redeploying with less resources'"></fa>
+                </span>
             </template>
 
             <template slot="url" slot-scope="props">
                 <a target="_blank" :href="props.value">{{ props.value }}</a>
             </template>
 
-            <template slot="buttons" slot-scope="props">
-                <b-button
-                    v-for="action in actions" :key="action.key"
-                    size="sm"
-                    class="ml-1 mr-1"
-                    :variant="action.variant"
-                    :disabled="actionInProgress[props.item.id]"
-                    @click="triggerAction(action, props.item)">
-                    <fa :icon="action.icon"></fa>
-                    {{ action.name }}
-                </b-button>
-
-                <fa icon="spinner" spin v-if="actionInProgress[props.item.id]"></fa>
+            <template slot="buttons" slot-scope="props" >
+                <instance-buttons :item="props.item" @show-export="$refs.exportModal.open(props.item.id)" @show-import="$refs.importModal.open(props.item.id)" @show-passwords="$refs.passwordsModal.open(props.item.configuration.users)" @load-existing-instances="loadExistingInstances(true)" @get-instance-state="getInstanceState(props.item)"></instance-buttons>
             </template>
         </b-table>
+        <passwords-modal ref="passwordsModal"></passwords-modal>
+        <import-modal ref="importModal"></import-modal>
+        <export-modal ref="exportModal"></export-modal>
     </b-card>
 </template>
 
@@ -53,17 +50,23 @@
     import { mapGetters } from 'vuex';
 
     import LoadingSpinner from '@/components/LoadingSpinner';
+    import InstanceButtons from '@/components/existing/InstanceButtons';
+    import PasswordsModal from '@/components/existing/PasswordsModal';
+    import ImportModal from '@/components/existing/ImportModal';
+    import ExportModal from '@/components/existing/ExportModal';
     import Server from '@/server';
 
     const DEFAULT_STATE = 'NOT_FOUND';
     
     export default {
         components: {
-            LoadingSpinner
+            ExportModal, LoadingSpinner, InstanceButtons, PasswordsModal, ImportModal
         },
 
         data() {
             return {
+                initLoading: true,
+                polling: null,
                 isLoading: false,
                 actionInProgress: { },
 
@@ -73,13 +76,6 @@
                     { key: 'comment', label: 'Comment' },
                     { key: 'url', label: 'URL' },
                     { key: 'buttons', label: '' }
-                ],
-
-                actions: [
-                    { key: 'start', name: 'Start', variant: 'success', icon: 'play' },
-                    { key: 'restart', name: 'Restart', variant: 'outline-success', icon: 'play-circle' },
-                    { key: 'stop', name: 'Stop', variant: 'warning', icon: 'stop' },
-                    { key: 'delete', name: 'Delete', variant: 'danger', icon: 'trash-alt' }
                 ]
             };
         },
@@ -90,7 +86,13 @@
 
         created() {
             this.loadExistingInstances();
+            this.pollStates();
         },
+
+        beforeDestroy() {
+            clearInterval(this.polling);
+        },
+
 
         methods: {
             async loadExistingInstances(forceReload = false) {
@@ -108,7 +110,14 @@
                 }
                 finally {
                     this.isLoading = false;
+                    this.initLoading = false;
                 }
+            },
+            
+            pollStates() {
+                this.polling = setInterval(() => {
+                    this.loadExistingInstances(false);
+                }, 5000);
             },
 
             getInstanceStates() {
@@ -120,7 +129,11 @@
             async getInstanceState(item) {
                 try {
                     const data = await Server.getInstanceState(item.id);
-                    Vue.set(item, 'status', data);
+                    Vue.set(item, 'status', data.instance_status);
+                    if (data.instance_status === 'DEPLOYING') {
+                        Vue.set(item, 'deployment_stuck', data.deployment_stuck);
+                        Vue.set(item, 'stuck_duration', data.stuck_duration);
+                    }
                 }
                 catch (error) {
                     console.error(error); // eslint-disable-line
@@ -130,29 +143,8 @@
             
             resetAndReload() {
                 this.loadExistingInstances(true);
-            },
-
-            async triggerAction(action, item) {
-                try {
-                    Vue.set(this.actionInProgress, item.id, true);
-                    await Server.triggerInstanceAction(action.key, item.id);
-                    this.$eventBus.$emit('showSuccessToast', `Action "${action.name}" executed successfully.`);
-                    
-                    if (action.key === 'delete') {
-                        this.loadExistingInstances(true);
-                    }
-                    else {
-                        Vue.set(item, 'status', '');
-                        this.getInstanceState(item);
-                    }
-                }
-                catch (e) {
-                    this.$eventBus.$emit('showErrorToast', `Error executing action "${action.name}".`);
-                }
-                finally {
-                    Vue.delete(this.actionInProgress, item.id);
-                }
             }
+
         }
     };
 </script>

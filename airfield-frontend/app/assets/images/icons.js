@@ -20,7 +20,12 @@ import {
     faTrashAlt,
     faList,
     faBox,
-    faSlidersH
+    faSlidersH,
+    faLockOpen,
+    faExclamationTriangle,
+    faCog,
+    faUpload,
+    faDownload
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -45,7 +50,12 @@ library.add(
     faList,
     faBox,
     faSlidersH,
-    faPython
+    faPython,
+    faLockOpen,
+    faExclamationTriangle,
+    faCog,
+    faUpload,
+    faDownload
 );
 
 Vue.component('fa', FontAwesomeIcon);

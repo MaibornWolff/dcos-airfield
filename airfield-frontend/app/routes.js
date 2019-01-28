@@ -4,6 +4,7 @@ Vue.use(VueRouter);
 
 import AddInstance from '@/components/add/AddInstance';
 import ExistingInstances from '@/components/existing/ExistingInstances';
+import RedeployInstance from '@/components/add/RedeployInstance';
 
 export default new VueRouter({
     routes: [{
@@ -12,5 +13,8 @@ export default new VueRouter({
     }, {
         path: '/add',
         component: AddInstance
+    }, {
+        path: '/redeploy/:instance',
+        component: RedeployInstance
     }]
 });

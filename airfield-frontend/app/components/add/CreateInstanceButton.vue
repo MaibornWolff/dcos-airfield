@@ -1,10 +1,11 @@
 <template>
     <b-button
-        variant="primary"
+        :variant="selectedNewInstance.created_at ? 'outline-danger':'primary'"
         :disabled="isLoading"
         @click="createNewInstance">
-        <fa :icon="isLoading ? 'spinner' : 'check'" :spin="isLoading"></fa>
-        Create new instance
+        <fa :icon="buttonIcon" :spin="isLoading"></fa>
+        <template v-if="selectedNewInstance.created_at">Redeploy instance</template>
+        <template v-else>Create new instance</template>
     </b-button>
 </template>
 
@@ -22,9 +23,14 @@
         },
 
         computed: {
-            ...mapGetters(['selectedNewInstance'])
+            ...mapGetters(['selectedNewInstance']),
+            buttonIcon() {
+                if (this.isLoading) {
+                    return 'spinner';
+                }
+                return this.selectedNewInstance.created_at ? 'cog' : 'check';
+            }
         },
-
         methods: {
             async createNewInstance() {
                 try {
@@ -33,6 +39,7 @@
                     this.$eventBus.$emit('showSuccessToast', 'New instance created successfully.');
                     this.$store.dispatch('resetNewInstance');
                     this.$store.dispatch('resetExistingInstances');
+                    this.$router.push('/');
                 }
                 catch (e) {
                     this.$eventBus.$emit('showErrorToast', 'Error creating the new instance!');

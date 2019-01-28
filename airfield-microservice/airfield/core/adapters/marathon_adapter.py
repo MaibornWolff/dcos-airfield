@@ -44,14 +44,14 @@ class MarathonAdapter(object):
         url = self._get_marathon_url() + '/apps/%s/?embed=app.counts' % instance_id
         response = requests.get(url=url, auth=self.auth, verify=False)
         if not response.ok:
-            logging.error(response, response.text)
+            logging.error(response.text)
             if response.status_code == 404:
-                self.marathon_error_metric.inc()
-                return InstanceState.CONNECTION_ERROR
+                return InstanceState.NOT_FOUND
             if response.status_code == 401:
                 return InstanceState.UNAUTHORIZED
             else:
-                return InstanceState.NOT_FOUND
+                self.marathon_error_metric.inc()
+                return InstanceState.CONNECTION_ERROR
         try:
             state = response.json()['app']
             if state.get('tasksHealthy') > 0 and state.get('tasksRunning') > 0:
@@ -69,18 +69,27 @@ class MarathonAdapter(object):
             self.marathon_error_metric.inc()
             return InstanceState.NOT_FOUND
 
+    def get_deployment_status(self, instance_id: str) -> bool:
+        if not instance_id:
+            raise Exception("No instance id provided")
+        url = self._get_marathon_url() + '/apps/%s/tasks' % instance_id
+        response = requests.get(url=url, auth=self.auth, verify=False)
+        if response.ok:
+            return len(response.json()["tasks"]) != 0
+        else:
+            logging.error(response.text)
+            self.marathon_error_metric.inc()
+            return False
+
     def instance_exists(self, instance_id: str) -> bool:
         if instance_id is None:
             logging.info('No instance ID provided for existence check. Aborting search.')
             return False
-        if self.get_instance_status(instance_id) == InstanceState.NOT_FOUND:
-            return False
-        else:
-            return True
+        return self.get_instance_status(instance_id) != InstanceState.NOT_FOUND
 
     def deploy_instance(self, instance_definition) -> bool:
         wait_for_deployment = config.WAIT_FOR_DEPLOYMENT
-        url = self._get_marathon_url() + '/apps'
+        url = self._get_marathon_url() + '/apps?force=true'  # will update an instance definition or create a new one
         response = requests.put(url=url, json=[instance_definition], auth=self.auth, verify=False)
         if not response.ok:
             logging.error(response.text)

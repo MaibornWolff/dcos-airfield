@@ -32,7 +32,7 @@
             ...mapGetters(['selectedNewInstance']),
 
             isSelected() {
-                return this.selectedNewInstance.id === this.instance.id;
+                return this.selectedNewInstance.template_id === this.instance.template_id;
             },
 
             icon() {

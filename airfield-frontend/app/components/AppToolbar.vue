@@ -1,17 +1,24 @@
 <template>
-    <b-navbar type="dark" variant="primary">
+    <b-navbar type="dark" variant="primary" toggleable="md">
         <b-navbar-brand>
             <b-link to="/">
                 <img src="../assets/images/airfield_logo.png" alt="Airfield" class="airfieldLogo">
                 <span class="title">Airfield</span>
             </b-link>
         </b-navbar-brand>
+        <auth></auth>
     </b-navbar>
 </template>
 
 
 <script>
-    export default { };
+    import Auth from '@/components/Auth';
+    
+    export default {
+        components: {
+            Auth
+        }
+    };
 </script>
 
 

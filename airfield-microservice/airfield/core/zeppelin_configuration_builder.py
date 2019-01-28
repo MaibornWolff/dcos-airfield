@@ -4,12 +4,14 @@ and consul instance entries"""
 
 #  standard imports
 import logging
-from datetime import datetime
+import secrets
+import time
 import random
 import string
+from jinja2 import Template
+import hashlib
 # custom imports
 import config
-
 
 CREATE_NOTEBOOK_API_URL = "/api/notebook"
 KEY = 'configuration'
@@ -18,6 +20,7 @@ LABEL_KEY = 'labels'
 HOST_KEY = 'HAPROXY_0_VHOST'
 COMMENT_KEY = 'comment'
 LIBRARIES_KEY = 'libraries'
+USERS_KEY = 'ZEPPELIN_SHIRO_CONF'
 ENV_KEY = 'env'
 CPUS_KEY = "cpus"
 MEM_KEY = "mem"
@@ -44,7 +47,10 @@ class ZeppelinConfigurationBuilder(object):
         :param app_definition: The marathon app definition for the zeppelin instance
         :return: app definition for zeppelin instance and instance metadata for consul/etcd
         """
-        instance_id = self._generate_instance_id()
+        try:
+            instance_id = custom_configuration[ID_KEY]
+        except KeyError:
+            instance_id = self._generate_instance_id()
         app_id = instance_id
         if config.MARATHON_APP_GROUP:
             app_id = "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
@@ -62,17 +68,26 @@ class ZeppelinConfigurationBuilder(object):
             app_definition[ENV_KEY][PYTHON_PACKAGES_KEY] = python_packages_string
         if r_packages_string:
             app_definition[ENV_KEY][R_PACKAGES_KEY] = r_packages_string
-        # Create config entry for config store
-        metadata = dict(
-            url=INSTANCE_URL_PREFIX + instance_url,
-            id=instance_id,
-            comment=custom_configuration.get(COMMENT_KEY, None),
-            created_at=datetime.utcnow().timestamp(),
-            delete_at=custom_configuration.get(DELETE_AT_KEY, None)
-        )
+        app_definition[ENV_KEY][USERS_KEY] = self._create_user_config_file(options["users"],
+             options["usermanagement"]) if options["usermanagement"] != "no" else ""
+
+        # Create entry for config store with only selected values
+        metadata = {"comment": custom_configuration["comment"], "deleteAt": custom_configuration["deleteAt"],
+                    KEY: {key: options[key] for key in  # this will copy most of the values of the "configuration" entry
+                          [CPUS_KEY, ENV_KEY, MEM_KEY, "instances", "users", "usermanagement"]},
+                    'url': INSTANCE_URL_PREFIX + instance_url, 'created_at': time.time(), 'id': instance_id,
+                    "template_id": custom_configuration["template_id"]}
+        metadata[KEY]["users"] = [] if options["usermanagement"] == "no" else metadata[KEY]["users"]  # remove users if no usermanagement
+        metadata[KEY][LIBRARIES_KEY] = []
+        for lib in custom_configuration[KEY][LIBRARIES_KEY]:  # libraries goes another level deeper
+            try:
+                metadata[KEY][LIBRARIES_KEY].append({key: lib[key] for key in {"language", "libraries", "tensorflow"}})
+            except KeyError:
+                metadata[KEY][LIBRARIES_KEY].append({key: lib[key] for key in {"language", "libraries"}})
+
         return app_definition, metadata
 
-    def _parse_additional_packages(self, configuration: dict) -> dict:
+    def _parse_additional_packages(self, configuration: dict):
         """
         Airfield allows for additional R/Python packages to be defined.
         These are passed into the required format for installation here.
@@ -99,7 +114,8 @@ class ZeppelinConfigurationBuilder(object):
                     r_packages_string = self._create_r_packages_string(r_packages)
         return python_packages_string, r_packages_string
 
-    def _create_python_packages_string(self, python_packages: list):
+    @staticmethod
+    def _create_python_packages_string(python_packages: list):
         """
         Builds the specific string required by Zeppelin images to install Python packages.
 
@@ -111,7 +127,8 @@ class ZeppelinConfigurationBuilder(object):
         else:
             return " ".join(python_packages)
 
-    def _create_r_packages_string(self, r_packages: list):
+    @staticmethod
+    def _create_r_packages_string(r_packages: list):
         """
         Builds the specific string required by Zeppelin images to install R packages.
 
@@ -123,6 +140,30 @@ class ZeppelinConfigurationBuilder(object):
         else:
             package_string = ','.join(["'%s'" % p for p in r_packages])
             return "c(%s)" % package_string
+
+    @staticmethod
+    def _create_user_config_file(users: list, usermanagement: str):
+        hashed_users = []
+        for user in users:
+            if (usermanagement == "manual" and (user["username"] == "" or user["password"] == "")) or (
+                    usermanagement == "random" and user["username"] == ""):
+                # filter empty lines/users
+                users.remove(user)
+                continue
+            if usermanagement == "random":
+                user["password"] = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(20))
+                # this password will be accessible outside the function because dict is a mutable type
+            # hash passwords and store for template
+            hashed_password = hashlib.sha256(user["password"].encode("utf-8")).hexdigest()
+            hashed_users.append({"username": user["username"], "password": hashed_password})
+        if len(users) is 0:
+            # dont create a file if no users are to be created
+            return ""
+        else:
+            with open("airfield/resources/shiro.ini.jinja2") as file_:
+                template = Template(file_.read())
+            out = template.render(users=hashed_users)
+            return out
 
     def _generate_instance_id(self) -> str:
         return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(9))
