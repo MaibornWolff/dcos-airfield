@@ -242,7 +242,7 @@ class AirfieldService(object):
                 found = False
                 for config_template in configuration_data:
                     if config_template["template_id"] == custom_settings["template_id"]:
-                        import_notebooks = self._get_notes_backup(previous_id) if previous_id is not None else []
+                        import_notebooks, _, _ = self._get_notes_backup(previous_id) if previous_id is not None else [], None, None
                         t = NotebookTransferThread(metadata["configuration"]["users"], metadata["url"],
                                                    template_notebooks=config_template["notebook_templates"],
                                                    import_notebooks=import_notebooks)
@@ -251,7 +251,7 @@ class AirfieldService(object):
                         found = True
                         break
                 if not found:
-                    import_notebooks = self._get_notes_backup(previous_id) if previous_id is not None else []
+                    import_notebooks, _, _ = self._get_notes_backup(previous_id) if previous_id is not None else [], None, None
                     t = NotebookTransferThread(metadata["configuration"]["users"], metadata["url"],
                                                template_notebooks=[],
                                                import_notebooks=import_notebooks)
@@ -320,7 +320,7 @@ class AirfieldService(object):
         if restart_successful:
             logging.info('Restart instance successful.')
             result.status = ApiResponseStatus.SUCCESS
-            notes, users, url = self._get_notes_backup(instance_id, mode='full')
+            notes, users, url = self._get_notes_backup(instance_id)
             t = NotebookTransferThread(users, url,
                                        template_notebooks=[],
                                        import_notebooks=notes)
@@ -346,7 +346,7 @@ class AirfieldService(object):
 
         start_successful = self.marathon_adapter.start_instance(app_id)
         if start_successful:
-            notes, users, url = self._get_notes_backup(instance_id, mode='full')
+            notes, users, url = self._get_notes_backup(instance_id)
             t = NotebookTransferThread(users, url,
                                        template_notebooks=[],
                                        import_notebooks=notes)
@@ -405,22 +405,16 @@ class AirfieldService(object):
             except ZeppelinException:
                 logging.error("Could not backup notes from instance "+instance_id)
 
-    def _get_notes_backup(self, instance_id, mode='short'):
+    def _get_notes_backup(self, instance_id):
         instance = self.config_store.get_existing_zeppelin_instance_data(instance_id)
         if instance is None:
-            if mode == 'short':
-                return []
-            else:
                 return [], [], ""
         else:
             try:
                 # get stored notebooks first
                 stored_notes = self.config_store.retrieve_full_backup(instance_id)
                 self.config_store.delete_backup(instance_id)
-                if mode == 'short':
-                    return stored_notes
-                else:
-                    return stored_notes, instance["configuration"]["users"], instance["url"]
+                return stored_notes, instance["configuration"]["users"], instance["url"]
             except ZeppelinException:
                 logging.error("Could not fetch notebook backups of instance " + instance_id)
 
