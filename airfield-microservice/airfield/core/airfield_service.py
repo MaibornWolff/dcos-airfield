@@ -430,13 +430,16 @@ class AirfieldService(object):
             with open(config.MARATHON_APP_DEFINITION_FILE) as marathon_file:
                 app_definition = json.load(marathon_file)
         if config.HDFS_CONFIG_FOLDER != "":
+            hdfs_folder = config.HDFS_CONFIG_FOLDER
+            if "://" not in hdfs_folder:
+                hdfs_folder = "http://" + hdfs_folder
             app_definition["fetch"] = [{
-                "uri": "http://" + config.HDFS_CONFIG_FOLDER + "/hdfs-site.xml",
+                "uri": hdfs_folder + "/hdfs-site.xml",
                 "extract": False,
                 "executable": False,
                 "cache": False
             }, {
-                "uri": "http://" + config.HDFS_CONFIG_FOLDER + "/core-site.xml",
+                "uri": hdfs_folder + "/core-site.xml",
                 "extract": False,
                 "executable": False,
                 "cache": False

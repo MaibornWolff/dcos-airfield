@@ -20,11 +20,18 @@ class EtcdAdapter(object):
     def __init__(self):
         logging.info('Initializing EtcdAdapter')
         self._setup_metrics()
-        if ":" not in config.ETCD_ENDPOINT:
-            host, port = config.ETCD_ENDPOINT, 2379
+        endpoint = config.ETCD_ENDPOINT
+        protocol = "http"
+        version_prefix = '/v2'
+        if "://" in endpoint:
+            protocol, endpoint = endpoint.split("://")
+        if "/" in endpoint:
+            endpoint, version_prefix = endpoint.split("/", 1)
+        if ":" not in endpoint:
+            host, port = endpoint, 2379
         else:
-            host, port = config.ETCD_ENDPOINT.split(":")
-        self.conn = etcd.Client(host=host, port=int(port))
+            host, port = endpoint.split(":")
+        self.conn = etcd.Client(host=host, port=int(port), protocol=protocol, version_prefix=version_prefix)
 
     def get_zeppelin_marathon_app_definition(self):
         key = config.CONFIG_BASE_KEY + '/zeppelin_configuration'
