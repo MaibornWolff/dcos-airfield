@@ -172,8 +172,7 @@ npm run lint
 The current release contains all basic functionality to collaborate with shared Zeppelin instances. Below is a list of future additions that will probably be included in a future release. Of course we can't give any guarantees :-)
 
 * Usability improvements (only show creatable instances, allow adding GPUs to the instance, etc.)
-* Adding notebook templates to be created automatically on instance start
-* Deployment as DC/OS package
-* Build PR for DC/OS universe
 * Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in staging
-* Allow integration with dynamically scaling the DC/OS cluster
+* Allow integration with dynamically scaling the DC/OS cluster by providing an interface that can be implemented to interact with the scaling mechanism used by your team. 
+* Support for managing JupyterLab instances
+* Provide more information on who created what for whom and usage durations in order to give more transparency regarding infrastructure costs.
