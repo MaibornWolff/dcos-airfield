@@ -51,7 +51,7 @@
     },
     {{/service.service_account_secret}}
     "PACKAGE_NAME": "airfield",
-    "PACKAGE_VERSION": "{{package-version}}",
+    "PACKAGE_VERSION": "0.2.0",
     "PACKAGE_BUILD_TIME_EPOCH_MS": "%(time_epoche_ms)s",
     "PACKAGE_BUILD_TIME_STR": "%(time_str)s",
     {{#airfield.dcos_base_url}}
@@ -69,6 +69,10 @@
     {{#airfield.config_base_key}}
     "AIRFIELD_CONFIG_BASE_KEY": "{{airfield.config_base_key}}",
     {{/airfield.config_base_key}}
+    {{#airfield.oidc_config}}
+    "AIRFIELD_OIDC_ACTIVATED": "1",
+    "AIRFIELD_OIDC_SECRET_FILE": "{{airfield.oidc_config}}",
+    {{/airfield.oidc_config}}
     "AIRFIELD_BASE_HOST" : "{{airfield.marathon_lb_base_host}}"
   },
   "healthChecks": [

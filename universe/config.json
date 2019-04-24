@@ -99,6 +99,12 @@
           "title": "Base URL of the DC/OS adminrouter",
           "description": "URL of the DC/OS adminrouter. Default works under EE clusters in permissive/strict mode. Set this to \"http://leader.mesos\" if running on OpenSource DC/OS",
           "type": "string"
+        },
+        "oidc_config": {
+          "title": "Base64-encoded oidc config",
+          "description": "OIDC client configuration. See https://github.com/MaibornWolff/dcos-airfield/blob/master/airfield-microservice/airfield/resources/keycloak_example.json for an example. Encode the file with 'base64 -wc 0 oidc.json' and use the result as value for this config.",
+          "type": "string",
+          "default": ""
         }
       },
       "required": [
