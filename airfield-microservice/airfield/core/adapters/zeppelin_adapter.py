@@ -47,7 +47,12 @@ class ZeppelinAdapter(object):
         if not r.ok:
             raise ZeppelinException(r.text)
         content = r.json()
-        return json.loads(content["body"])
+        notebook = json.loads(content["body"])
+        for paragraph in notebook.get("paragraphs", list()):
+            if "results" in paragraph:
+                del paragraph["results"]  # Clear out results as they are not needed and can blow up json size
+        return notebook
+
 
     def list_notebooks(self):
         r = self.session.get(self.base_host + '/api/notebook')

@@ -11,4 +11,4 @@ PyJWT==1.7.1
 prometheus-client==0.4.2
 requests==2.20.0
 cryptography==2.4.2
-jinja2==2.10
+jinja2==2.10.1
