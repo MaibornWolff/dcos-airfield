@@ -1,8 +1,8 @@
 
 {
   "packagingVersion": "4.0",
-  "upgradesFrom": [],
-  "downgradesTo": [],
+  "upgradesFrom": ["0.1.0"],
+  "downgradesTo": ["0.1.0"],
   "minDcosReleaseVersion": "1.10",
   "name": "airfield",
   "version": "{{package-version}}",

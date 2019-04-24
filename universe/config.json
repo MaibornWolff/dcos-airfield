@@ -82,7 +82,7 @@
         },
         "etcd_endpoint": {
           "title": "Endpoint for etcd",
-          "description": "Endpoint for etcd in the form host:port, e.g. \"etcd.marathon.l4lb.thisdcos.directory:2379\". Either this or consul_endpoint must be set",
+          "description": "Endpoint for etcd, e.g. \"http://api.etcd.l4lb.thisdcos.directory:2379\" if you use the etcd package. Either this or consul_endpoint must be set",
           "type": "string"
         },
         "app_group": {

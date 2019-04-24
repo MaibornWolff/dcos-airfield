@@ -3,7 +3,7 @@
   "assets": {
     "container": {
       "docker": {
-        "airfield": "maibornwolff/airfield:0.1.0"
+        "airfield": "maibornwolff/airfield:0.2.0"
       }
     }
   },
