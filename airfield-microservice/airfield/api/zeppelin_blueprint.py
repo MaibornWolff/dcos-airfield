@@ -50,12 +50,29 @@ def get_zeppelin_instances():
     return response.to_json(), response.status.value
 
 
+@ZeppelinBlueprint.route('/deleted/instance', methods=['GET'])  # get all
+@login_if_oidc
+def get_deleted_zeppelin_instances():
+    response = airfield_service.get_deleted_zeppelin_instances()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/deleted/instance', method="GET").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/deleted/instance/<instance_id>', methods=['DELETE'])
+@login_if_oidc
+def delete_instance_from_deleted_instances(instance_id):
+    instance_id = clean_input_string(instance_id)
+    response = airfield_service.delete_deleted_zeppelin_instance(instance_id)
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/deleted/instance/', method="DELETE").inc()
+    return response.to_json(), response.status.value
+
+
 @ZeppelinBlueprint.route('/instance', methods=['POST'])  # create
 @login_if_oidc
 def create_zeppelin_instance():
     logging.debug('request data: {}'.format(request.data))
     instance_configuration = request.data
-    response = airfield_service.create_zeppelin_instance(instance_configuration)
+    response = airfield_service.create_or_update_zeppelin_instance(instance_configuration)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="GET").inc()
     return response.to_json(), response.status.value
 
@@ -64,7 +81,7 @@ def create_zeppelin_instance():
 @login_if_oidc
 def delete_instance(instance_id):
     instance_id = clean_input_string(instance_id)
-    response = airfield_service.delete_zeppelin_instance(instance_id)
+    response = airfield_service.delete_existing_zeppelin_instance(instance_id)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="DELETE").inc()
     return response.to_json(), response.status.value
 
@@ -72,7 +89,7 @@ def delete_instance(instance_id):
 @ZeppelinBlueprint.route('/instance/<instance_id>', methods=['PUT'])  # redeploy
 @login_if_oidc
 def redeploy_instance(instance_id):
-    response = airfield_service.create_zeppelin_instance(request.data, instance_id)
+    response = airfield_service.create_or_update_zeppelin_instance(request.data, instance_id, redeploy=True)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="PUT").inc()
     return response.to_json(), response.status.value
 

@@ -5,7 +5,8 @@ export default {
         defaultConfigurations: [],
         selectedNewInstance: { },
         existingInstances: [],
-        storedNotebooks: []
+        storedNotebooks: [],
+        deletedInstances: []
     },
 
     getters: {
@@ -13,15 +14,25 @@ export default {
         selectedNewInstance: state => state.selectedNewInstance,
         isNewInstanceSelected: state => state.selectedNewInstance.hasOwnProperty('template_id'),
         existingInstances: state => state.existingInstances,
-        storedNotebooks: state => state.storedNotebooks
+        storedNotebooks: state => state.storedNotebooks,
+        deletedInstances: state => state.deletedInstances
     },
 
     actions: {
+        addCreatedBy({ state, commit, rootGetters }){
+            const username = rootGetters['username']; // eslint-disable-line
+            const instance = state.selectedNewInstance;
+            if(typeof instance.createdBy === 'undefined'){
+                instance.createdBy = username;
+                commit('SET_NEW_SELECTED_INSTANCE', instance);
+            }
+            
+        },
         async loadDefaultConfigurations({ commit, state }) {
+            
             if (state.defaultConfigurations.length > 0) {
                 return;
             }
-
             const data = await Server.getDefaultConfigurations().then(
                 response => {
                     return response;
@@ -60,12 +71,19 @@ export default {
             if (!forceReload && state.existingInstances.length > 0) {
                 return;
             }
-
             const data = await Server.getExistingInstances().then(
                 response => {
                     return response;
                 });
             commit('SET_EXISTING_INSTANCES', data);
+        },
+
+        async loadDeletedInstances({ commit, state }) { // eslint-disable-line
+            const data = await Server.getDeletedInstances().then(
+                response => {
+                    return response;
+                });
+            commit('SET_DELETED_INSTANCES', data);
         },
 
         resetExistingInstances({ commit }) {
@@ -96,6 +114,10 @@ export default {
         
         SET_STORED_INSTANCES(state, data) {
             state.storedNotebooks = data;
+        },
+        
+        SET_DELETED_INSTANCES(state, data){
+            state.deletedInstances = data;
         }
     }
 };

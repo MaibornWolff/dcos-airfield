@@ -59,6 +59,26 @@
                 <b-form-input v-model="additionalRLibraries"></b-form-input>
             </b-tab>
 
+            <b-tab title="Costs">
+                <h6><fa icon="money-bill-alt"></fa>currency</h6>
+                <input type="radio" value="EURO" v-model="selectedNewInstance.configuration.costsAsObject.currency">
+                <label>Euro</label>
+                <br>
+                <input type="radio" value="POUND" v-model="selectedNewInstance.configuration.costsAsObject.currency">
+                <label>Pound</label>
+                <br>
+                <input type="radio" value="DOLLAR" v-model="selectedNewInstance.configuration.costsAsObject.currency">
+                <label>Dollar</label>
+                <br>
+                <h6><fa icon="microchip"></fa>CPU Core</h6>
+                <label>costs per minute per core</label>
+                <b-form-input v-model="selectedNewInstance.configuration.costsAsObject.core_per_minute"></b-form-input>
+
+                <h6><fa icon="hdd"></fa>RAM</h6>
+                <label>costs per minute per RAM in GB</label>
+                <b-form-input v-model="selectedNewInstance.configuration.costsAsObject.ram_in_gb_per_minute"></b-form-input>
+            </b-tab>
+
             <b-tab title="Security">
                 <b-container class="mt-4">
                     <b-row>
@@ -147,6 +167,7 @@
             additionalPythonLibraries: libraryAccessor('Python'),
             additionalRLibraries: libraryAccessor('R')
         },
+        
         methods: {
             addRow() {
                 this.selectedNewInstance.configuration.users.push({ username: '', password: '' });

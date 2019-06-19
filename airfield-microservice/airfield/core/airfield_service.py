@@ -6,15 +6,17 @@ import json
 import logging
 import time
 # third party imports
+
 from prometheus_client import Counter, Gauge
 from apscheduler.schedulers.background import BackgroundScheduler
 # custom imports
 import config
-from . import ZeppelinConfigurationBuilder
+from . import ZeppelinConfigurationBuilder, InstanceRunningTypes
 from airfield.utility import ApiResponse, ApiResponseStatus
 from .adapters import MarathonAdapter, EtcdAdapter, ConsulAdapter, InstanceState, ZeppelinAdapter, ZeppelinException
 from airfield.utility import TechnicalException
 from .notebook_transfer_thread import NotebookTransferThread
+
 
 DELETE_AT_KEY = 'delete_at'
 CREATE_AT_KEY = 'created_at'
@@ -22,6 +24,7 @@ DEPLOYMENT_TIMEOUT = 180  # 3min
 ID_KEY = 'id'
 CONFIGURATION_KEY = 'configuration'
 CONFIGURATION_ID_KEY = 'id'
+
 
 
 class AirfieldService(object):
@@ -169,6 +172,18 @@ class AirfieldService(object):
                 }
         return result
 
+    def update_instance_history(self, status_list, instance_id):
+        instance = self.config_store.get_existing_zeppelin_instance_data(instance_id)
+        if "history" not in instance:
+            instance["history"] = self.configuration_builder.create_history_list(status_list, instance)
+        else:
+            instance["history"].extend(self.configuration_builder.create_history_list(status_list, instance))
+        try:
+            self.create_or_update_zeppelin_instance(custom_settings=instance, deployment=False)
+            logging.info('updating instance history successfully!')
+        except:
+            logging.error('updating instance history failed!')
+
     def get_zeppelin_default_configurations(self) -> ApiResponse:
         result = ApiResponse()
         configuration_data = self._get_local_default_configurations()
@@ -181,10 +196,20 @@ class AirfieldService(object):
         return result
 
     def get_existing_zeppelin_instances(self) -> ApiResponse:
+        return self.__get_zeppelin_instances(existing=True)
+
+    def get_deleted_zeppelin_instances(self) -> ApiResponse:
+        return self.__get_zeppelin_instances(existing=False)
+
+    def __get_zeppelin_instances(self, existing=True) -> ApiResponse:
         result = ApiResponse()
         try:
-            logging.debug('Retrieving existing instances.')
-            instance_data = self.config_store.get_existing_zeppelin_instances_data()
+            if existing:
+                logging.debug('Retrieving existing instances.')
+                instance_data = self.config_store.get_existing_zeppelin_instances_data()
+            else:
+                logging.debug('Retrieving deleted instances.')
+                instance_data = self.config_store.get_deleted_zeppelin_instances_data()
             if not instance_data:
                 instance_data = []
             result.status = ApiResponseStatus.SUCCESS
@@ -192,13 +217,16 @@ class AirfieldService(object):
                 'instances': instance_data
             }
         except TechnicalException as e:
-            logging.error('Error while retrieving existing zeppelin instances. Error={}'.format(e))
+            if existing:
+                logging.error('Error while retrieving existing zeppelin instances. Error={}'.format(e))
+            else:
+                logging.error('Error while retrieving deleted zeppelin instances. Error={}'.format(e))
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
             self.error_metric.inc()
         return result
 
-    def create_zeppelin_instance(self, custom_settings: dict, previous_id=None) -> ApiResponse:
+    def create_or_update_zeppelin_instance(self, custom_settings: dict, previous_id=None, deployment=True, redeploy=False) -> ApiResponse:
         result = ApiResponse()
 
         if previous_id is not None:
@@ -220,7 +248,7 @@ class AirfieldService(object):
         try:
             logging.debug('Modifying zeppelin instance configuration with custom settings.')
             app_definition, metadata = self.configuration_builder.create_instance_configuration(
-                custom_settings, app_definition)
+                custom_configuration=custom_settings, app_definition=app_definition, redeploy=redeploy)
         except KeyError as e:
             logging.error('Error while parsing custom settings. Error={}'.format(e))
             logging.debug('Base configuration={}'.format(app_definition))
@@ -230,33 +258,41 @@ class AirfieldService(object):
             self.error_metric.inc()
             return result
 
-        deployment_successful = self.marathon_adapter.deploy_instance(app_definition)
+        if deployment:
+            deployment_successful = self.marathon_adapter.deploy_instance(app_definition)
+        else:
+            deployment_successful = True
+
         if deployment_successful:
-            logging.info('Create instance successful.')
+            if deployment:
+                logging.info('Create instance successful.')
             try:
                 logging.debug('Storing metadata.')
-                self.config_store.create_instance_entry(metadata)
-                logging.debug('Creating thread to upload notebook templates')
-                #  locate templates for template_id
-                configuration_data = self._get_local_default_configurations()
-                found = False
-                for config_template in configuration_data:
-                    if config_template["template_id"] == custom_settings["template_id"]:
-                        import_notebooks, _, _ = self._get_notes_backup(previous_id) if previous_id is not None else [], None, None
+                self.config_store.create_or_update_existing_instance_entry(metadata)
+                if deployment:
+                    logging.debug('Creating thread to upload notebook templates')
+                    #  locate templates for template_id
+                    configuration_data = self._get_local_default_configurations()
+                    found = False
+                    for config_template in configuration_data:
+                        if config_template["template_id"] == custom_settings["template_id"]:
+                            import_notebooks, _, _ = self._get_notes_backup(
+                                previous_id) if previous_id is not None else [], None, None
+                            t = NotebookTransferThread(metadata["configuration"]["users"], metadata["url"],
+                                                       template_notebooks=config_template["notebook_templates"],
+                                                       import_notebooks=import_notebooks)
+                            t.start()
+                            self._threads[metadata["id"]] = t
+                            found = True
+                            break
+                    if not found:
+                        import_notebooks, _, _ = self._get_notes_backup(
+                            previous_id) if previous_id is not None else [], None, None
                         t = NotebookTransferThread(metadata["configuration"]["users"], metadata["url"],
-                                                   template_notebooks=config_template["notebook_templates"],
+                                                   template_notebooks=[],
                                                    import_notebooks=import_notebooks)
                         t.start()
                         self._threads[metadata["id"]] = t
-                        found = True
-                        break
-                if not found:
-                    import_notebooks, _, _ = self._get_notes_backup(previous_id) if previous_id is not None else [], None, None
-                    t = NotebookTransferThread(metadata["configuration"]["users"], metadata["url"],
-                                               template_notebooks=[],
-                                               import_notebooks=import_notebooks)
-                    t.start()
-                    self._threads[metadata["id"]] = t
 
                 result.status = ApiResponseStatus.SUCCESS
                 self.existing_instances_metric.inc()
@@ -275,7 +311,7 @@ class AirfieldService(object):
             self.error_metric.inc()
             return result
 
-    def delete_zeppelin_instance(self, instance_id: str) -> ApiResponse:
+    def delete_existing_zeppelin_instance(self, instance_id: str) -> ApiResponse:
         result = ApiResponse()
         if instance_id in self._threads:  # stop potentially running notebook_templates thread
             self._threads[instance_id].stop()
@@ -291,8 +327,11 @@ class AirfieldService(object):
         if delete_successful:
             logging.info('Delete instance successful.')
             try:
-                logging.debug('Removing instance metadata. ID={}'.format(instance_id))
-                self.config_store.remove_instance_entry(instance_id)
+                logging.debug('Removing instance metadata and storing to the deleted instances. ID={}'.format(instance_id))
+                instance = self.config_store.get_existing_zeppelin_instance_data(instance_id)
+                instance["deleted_at"] = time.time()
+                self.config_store.create_or_update_deleted_instance_entry(instance)
+                self.config_store.remove_existing_instance_entry(instance_id)
             except TechnicalException as e:
                 logging.error('Could not remove instance metadata. Error={}'.format(e))
                 self.error_metric.inc()
@@ -303,6 +342,19 @@ class AirfieldService(object):
             logging.info('Delete instance failed.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
             result.error_message = 'An error occurred.'
+        return result
+
+    def delete_deleted_zeppelin_instance(self, instance_id: str) -> ApiResponse:
+        result = ApiResponse()
+        try:
+            logging.debug('Removing instance metadata from the deleted instances. ID={}'.format(instance_id))
+            self.config_store.remove_deleted_instance_entry(instance_id)
+        except TechnicalException as e:
+            logging.error('Could not remove instance metadata. Error={}'.format(e))
+            self.error_metric.inc()
+        result.status = ApiResponseStatus.SUCCESS
+        self.active_instances_metric.dec()
+        self.existing_instances_metric.dec()
         return result
 
     def restart_zeppelin_instance(self, instance_id: str) -> ApiResponse:
@@ -326,7 +378,7 @@ class AirfieldService(object):
                                        import_notebooks=notes)
             t.start()
             self._threads[instance_id] = t
-
+            self.update_instance_history(InstanceRunningTypes.RUNNING.name, instance_id)
         else:
             logging.info('Restart instance failed.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
@@ -355,6 +407,7 @@ class AirfieldService(object):
             logging.info('Start instance successful.')
             result.status = ApiResponseStatus.SUCCESS
             self.active_instances_metric.inc()
+            self.update_instance_history(InstanceRunningTypes.RUNNING.name, instance_id)
         else:
             logging.info('Start instance failed.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
@@ -378,6 +431,7 @@ class AirfieldService(object):
             logging.info('Stop instance successful.')
             result.status = ApiResponseStatus.SUCCESS
             self.active_instances_metric.dec()
+            self.update_instance_history(InstanceRunningTypes.STOPPED.name, instance_id)
         else:
             logging.info('Stop instance failed.')
             result.status = ApiResponseStatus.INTERNAL_ERROR
@@ -403,12 +457,12 @@ class AirfieldService(object):
                     notes_contents.append(zeppelin.export_notebook(note["id"]))
                 self.config_store.store_full_backup(instance_id=instance_id, notebooks=notes_contents)
             except ZeppelinException:
-                logging.error("Could not backup notes from instance "+instance_id)
+                logging.error("Could not backup notes from instance " + instance_id)
 
     def _get_notes_backup(self, instance_id):
         instance = self.config_store.get_existing_zeppelin_instance_data(instance_id)
         if instance is None:
-                return [], [], ""
+            return [], [], ""
         else:
             try:
                 # get stored notebooks first
@@ -496,7 +550,7 @@ class AirfieldService(object):
             logging.info('Deleting {} overdue instances.'.format(len(overdue_instances)))
             for instance_id in overdue_instances:
                 logging.info('Deleting {}'.format(instance_id))
-                self.delete_zeppelin_instance(instance_id)
+                self.delete_existing_zeppelin_instance(instance_id)
 
     def _get_overdue_instance_ids(self) -> [int]:
         logging.debug('Retrieving existing instances to get overdue instances.')

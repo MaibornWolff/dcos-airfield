@@ -16,6 +16,11 @@ module.exports = [{
             language: 'R',
             libraries: []
         }],
+        costsAsObject: {
+            currency: 'EURO',
+            core_per_minute: 0.99,
+            ram_in_gb_per_minute: 0.49
+        },
         mem: 8192,
         usermanagement: 'manual',
         users: [{
@@ -48,6 +53,11 @@ module.exports = [{
             language: 'R',
             libraries: []
         }],
+        costsAsObject: {
+            currency: 'EURO',
+            core_per_minute: 0.99,
+            ram_in_gb_per_minute: 0.49
+        },
         mem: 16384,
         usermanagement: 'random',
         users: [{
@@ -77,6 +87,11 @@ module.exports = [{
             language: 'R',
             libraries: []
         }],
+        costsAsObject: {
+            currency: 'EURO',
+            core_per_minute: 0.99,
+            ram_in_gb_per_minute: 0.49
+        },
         mem: 32768,
         usermanagement: 'no',
         users: []

@@ -15,6 +15,8 @@ import config
 from airfield.utility import TechnicalException
 
 ID_KEY = 'id'
+existing_instances_key = '/existing_instances'
+deleted_instances_key = '/deleted_instances'
 
 
 class ConsulAdapter(object):
@@ -132,7 +134,12 @@ class ConsulAdapter(object):
             raise TechnicalException(error_message)
 
     def get_existing_zeppelin_instances_data(self) -> dict:
-        key = config.CONFIG_BASE_KEY + '/existing_instances'
+        return self.__get_instances_from_database(config.CONFIG_BASE_KEY + existing_instances_key)
+
+    def get_deleted_zeppelin_instances_data(self) -> dict:
+        return self.__get_instances_from_database(config.CONFIG_BASE_KEY + deleted_instances_key)
+
+    def __get_instances_from_database(self, key) -> dict:
         try:
             instance_data = json.loads(self.conn.get(key)[key])
             return instance_data
@@ -151,6 +158,13 @@ class ConsulAdapter(object):
                 return instance
         return None
 
+    def get_deleted_zeppelin_instance_data(self, instance_id: str):
+        instances = self.get_deleted_zeppelin_instances_data()
+        for instance in instances:
+            if instance["id"] == instance_id:
+                return instance
+        return None
+
     def get_zeppelin_default_configuration_data(self):
         key = config.CONFIG_BASE_KEY + '/default_configs'
         try:
@@ -164,32 +178,47 @@ class ConsulAdapter(object):
             self.consul_error_metric.inc()
             raise TechnicalException(error_message)
 
-    def create_instance_entry(self, instance_data: dict):
-        key = config.CONFIG_BASE_KEY + '/existing_instances'
-        existing_instances = self.get_existing_zeppelin_instances_data()
-        if not existing_instances:
-            existing_instances = []
+    def create_or_update_existing_instance_entry(self, instance_data: dict):
+        self.__create_or_update_instance_entry(instance_data=instance_data, existing=True)
+
+    def create_or_update_deleted_instance_entry(self, instance_data: dict):
+        self.__create_or_update_instance_entry(instance_data=instance_data, existing=False)
+
+    def __create_or_update_instance_entry(self, instance_data: dict, existing=True):
+        if existing:
+            key = config.CONFIG_BASE_KEY + existing_instances_key
+            instances = self.get_existing_zeppelin_instances_data()
+        else:
+            key = config.CONFIG_BASE_KEY + deleted_instances_key
+            instances = self.get_deleted_zeppelin_instances_data()
+        if not instances:
+            instances = []
         # check if instance was redeployed - and update entry in that case
         found = False
-        for index, instance in enumerate(existing_instances):
+        for index, instance in enumerate(instances):
             if instance["id"] == instance_data["id"]:
-                existing_instances[index] = instance_data
-                logging.debug("Updating existing instance in database")
+                instances[index] = instance_data
+                if existing:
+                    logging.debug("Updating existing instance in database")
+                else:
+                    logging.debug("Updating instance in database of the deleted instances")
                 found = True
                 break
         if not found:
-            logging.debug("Adding new instance to database")
-            existing_instances.append(instance_data)
+            if existing:
+                logging.debug("Adding new instance to database")
+            else:
+                logging.debug("Adding new instance to database of the deleted instances")
+            instances.append(instance_data)
         try:
-            self.conn.put(key, json.dumps(existing_instances))
+            self.conn.put(key, json.dumps(instances))
         except URLError as e:
             logging.error(e)
             error_message = "Consul server cannot be reached."
             self.consul_error_metric.inc()
             raise TechnicalException(error_message)
 
-    def remove_instance_entry(self, instance_id: str):
-        key = config.CONFIG_BASE_KEY + '/existing_instances'
+    def __remove_instance_entry(self, instance_id: str, key):
         try:
             existing_instances = json.loads(self.conn.get(key)[key])
             instance_index = -1
@@ -204,6 +233,12 @@ class ConsulAdapter(object):
             error_message = "Consul server cannot be reached."
             self.consul_error_metric.inc()
             raise TechnicalException(error_message)
+
+    def remove_deleted_instance_entry(self, instance_id: str):
+        self.__remove_instance_entry(instance_id, config.CONFIG_BASE_KEY + deleted_instances_key)
+
+    def remove_existing_instance_entry(self, instance_id: str):
+        self.__remove_instance_entry(instance_id, config.CONFIG_BASE_KEY + existing_instances_key)
 
     def _setup_metrics(self):
         logging.debug('Setting up consul metrics.')

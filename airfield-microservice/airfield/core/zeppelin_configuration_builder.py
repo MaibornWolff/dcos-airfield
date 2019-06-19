@@ -8,10 +8,14 @@ import secrets
 import time
 import random
 import string
+from enum import Enum
+import math
+
 from jinja2 import Template
 import hashlib
 # custom imports
 import config
+
 
 CREATE_NOTEBOOK_API_URL = "/api/notebook"
 KEY = 'configuration'
@@ -34,15 +38,21 @@ LANGUAGE_R = 'R'
 TENSORFLOW = "tensorflow"
 
 
+class InstanceRunningTypes(Enum):
+    RUNNING = 0
+    STOPPED = 1
+
+
 class ZeppelinConfigurationBuilder(object):
 
     def __init__(self):
         logging.info('Initializing ConfigurationBuilder.')
 
-    def create_instance_configuration(self, custom_configuration: dict, app_definition: dict):
+    def create_instance_configuration(self, custom_configuration: dict, app_definition: dict, redeploy=False):
         """
         Creates a valid Zeppelin instance configuration based on parameters specified in frontend.
 
+        :param redeploy:  only needed if the instance is redeployed
         :param custom_configuration: the settings that are customizable in the frontend
         :param app_definition: The marathon app definition for the zeppelin instance
         :return: app definition for zeppelin instance and instance metadata for consul/etcd
@@ -68,16 +78,49 @@ class ZeppelinConfigurationBuilder(object):
             app_definition[ENV_KEY][PYTHON_PACKAGES_KEY] = python_packages_string
         if r_packages_string:
             app_definition[ENV_KEY][R_PACKAGES_KEY] = r_packages_string
-        app_definition[ENV_KEY][USERS_KEY] = self._create_user_config_file(options["users"],
-             options["usermanagement"]) if options["usermanagement"] != "no" else ""
+        app_definition[ENV_KEY][USERS_KEY] = self._create_user_config_file(
+            options["users"],
+            options["usermanagement"]) if options["usermanagement"] != "no" else ""
+
+        # check for some options and add them if necessary
+        if "created_at" not in custom_configuration:
+            custom_configuration["created_at"] = time.time()
+
+        if "history" not in custom_configuration:
+            if redeploy:
+                if "comment_only" not in custom_configuration:
+                    custom_configuration["history"] = self.create_history_list(
+                        [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
+                        custom_configuration)
+            else:
+                custom_configuration["history"] = self.create_history_list(
+                    InstanceRunningTypes.RUNNING,
+                    custom_configuration)
+        else:
+            # adds the redeploy history
+            if redeploy:
+                if "comment_only" not in custom_configuration:
+                    custom_configuration["history"].extend(
+                        self.create_history_list(
+                            [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
+                            custom_configuration))
+        if custom_configuration["createdBy"] == '':
+            custom_configuration["createdBy"] = 'undefined'
 
         # Create entry for config store with only selected values
-        metadata = {"comment": custom_configuration["comment"], "deleteAt": custom_configuration["deleteAt"],
+        metadata = {"comment": custom_configuration["comment"],
+                    "createdBy": custom_configuration["createdBy"],
+                    "deleteAt": custom_configuration["deleteAt"],
                     KEY: {key: options[key] for key in  # this will copy most of the values of the "configuration" entry
-                          [CPUS_KEY, ENV_KEY, MEM_KEY, "instances", "users", "usermanagement"]},
-                    'url': INSTANCE_URL_PREFIX + instance_url, 'created_at': time.time(), 'id': instance_id,
+                          [CPUS_KEY, ENV_KEY, MEM_KEY, "instances", "users", "usermanagement", "costsAsObject"]},
+                    'url': INSTANCE_URL_PREFIX + instance_url,
+                    'created_at': custom_configuration["created_at"],
+                    'history': custom_configuration["history"],
+                    'id': instance_id,
                     "template_id": custom_configuration["template_id"]}
-        metadata[KEY]["users"] = [] if options["usermanagement"] == "no" else metadata[KEY]["users"]  # remove users if no usermanagement
+        # print(metadata)
+        metadata[KEY]["users"] = [] if options["usermanagement"] == "no" else metadata[KEY][
+            "users"]  # remove users if no usermanagement
         metadata[KEY][LIBRARIES_KEY] = []
         for lib in custom_configuration[KEY][LIBRARIES_KEY]:  # libraries goes another level deeper
             try:
@@ -86,6 +129,36 @@ class ZeppelinConfigurationBuilder(object):
                 metadata[KEY][LIBRARIES_KEY].append({key: lib[key] for key in {"language", "libraries"}})
 
         return app_definition, metadata
+
+    @staticmethod
+    def create_history_list(status_list, configuration):
+        if isinstance(status_list, list):
+            liste = []
+            for status in status_list:
+                liste.append(ZeppelinConfigurationBuilder.create_history_object(status, configuration))
+            return liste
+        else:
+            return [ZeppelinConfigurationBuilder.create_history_object(status_list, configuration)]
+
+    @staticmethod
+    def create_history_object(status, configuration):
+        if status in InstanceRunningTypes:
+            status = status.name
+        return {
+            "status": status,
+            "time": time.time(),
+            "resources": {
+                "zeppelin": {
+                    "cpu_cores": configuration["configuration"]["cpus"],
+                    "ram": configuration["configuration"]["mem"]
+                },
+                "spark": {
+                    "cpu_cores": configuration["configuration"]["env"]["SPARK_CORES_MAX"],
+                    "ram": configuration["configuration"]["env"]["SPARK_EXECUTOR_MEMORY"]
+                }
+            },
+            "costsAsObject": configuration["configuration"]["costsAsObject"],
+        }
 
     def _parse_additional_packages(self, configuration: dict):
         """

@@ -6,6 +6,10 @@ export default {
         isAuthenticated: true,
         username: ''
     },
+    
+    getters: {
+        username: state => state.username
+    },
 
     
     actions: {

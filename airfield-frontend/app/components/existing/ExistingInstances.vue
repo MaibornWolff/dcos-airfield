@@ -4,38 +4,78 @@
         <div slot="header" class="cardHeader">
             <div class="cardTitle">
                 <fa icon="list"></fa>
-                <b>Existing Instances</b>
+                <b>{{ existingInstancesLoaded ? 'Existing Instances' : 'Deleted Instances' }}</b>
             </div>
 
             <div>
+                <b-button size="sm" @click="displayInstances">
+                    <fa icon="spinner"></fa>
+                    {{ existingInstancesLoaded ? 'Show deleted instances' : 'Show existing instances' }}
+                </b-button>
+                
                 <b-button size="sm" @click="resetAndReload">
                     <fa icon="sync"></fa>
                     Refresh
                 </b-button>
 
-                <b-button size="sm" variant="primary" to="/add">
+                <b-button v-if="existingInstancesLoaded" size="sm" variant="primary" to="/add">
                     <fa icon="plus"></fa>
                     Add instance
                 </b-button>
             </div>
         </div>
 
-        <b-table striped hover :items="existingInstances" :fields="fields" class="mt-4">
+        <b-table v-if="existingInstancesLoaded" striped hover :items="existingInstances" :fields="fields" class="mt-4">
             <template slot="status" slot-scope="props">
                 <span v-if="props.item.status">{{ props.item.status }}</span>
                 <fa icon="spinner" spin v-else></fa>
-                
+
                 <span v-if="props.item.status === 'DEPLOYING' && props.item.deployment_stuck" class="pl-1">
-                    <fa icon="exclamation-triangle" class="text-danger" v-b-tooltip.hover.right :title="'Running for ' + props.item.stuck_duration + 'min, try redeploying with less resources'"></fa>
+                    <fa icon="exclamation-triangle" class="text-danger" v-b-tooltip.hover.right
+                        :title="'Running for ' + props.item.stuck_duration + 'min, try redeploying with less resources'"></fa>
                 </span>
             </template>
 
             <template slot="url" slot-scope="props">
                 <a target="_blank" :href="props.value">{{ props.value }}</a>
             </template>
+            <template slot="show_details" slot-scope="row">
+                <b-button
+                    size="sm"
+                    variant="outline-info"
+                    @click="row.toggleDetails"
+                    class="mr-2">
+                    {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+                </b-button>
+            </template>
+            <existing-instance-details slot="row-details" slot-scope="row" :item="row.item"></existing-instance-details>
 
-            <template slot="buttons" slot-scope="props" >
-                <instance-buttons :item="props.item" @show-export="$refs.exportModal.open(props.item.id)" @show-import="$refs.importModal.open(props.item.id)" @show-passwords="$refs.passwordsModal.open(props.item.configuration.users)" @load-existing-instances="loadExistingInstances(true)" @get-instance-state="getInstanceState(props.item)"></instance-buttons>
+            <template slot="buttons" slot-scope="props">
+                <instance-buttons :item="props.item"
+                                  @show-export="$refs.exportModal.open(props.item.id)"
+                                  @show-import="$refs.importModal.open(props.item.id)"
+                                  @show-passwords="$refs.passwordsModal.open(props.item.configuration.users)"
+                                  @load-existing-instances="loadExistingInstances(true)"
+                                  @get-instance-state="getInstanceState(props.item)"></instance-buttons>
+            </template>
+        </b-table>
+        <b-table v-if="!existingInstancesLoaded" striped hover :items="deletedInstances" :fields="deletedInstancesField" class="mt-4">
+            <template slot="deleted_at" slot-scope="row">
+                {{ toUTCString(row.item.deleted_at) }}
+            </template>
+            <template slot="show_details" slot-scope="row">
+                <b-button
+                    size="sm"
+                    variant="outline-info"
+                    @click="row.toggleDetails"
+                    class="mr-2">
+                    {{ row.detailsShowing ? 'Hide' : 'Show' }} Details
+                </b-button>
+            </template>
+            <existing-instance-details slot="row-details" slot-scope="row" :item="row.item"></existing-instance-details>
+            <template slot="buttons" slot-scope="props">
+                <instance-buttons :item="props.item"
+                                  @load-deleted-instances="loadDeletedInstances()"></instance-buttons>
             </template>
         </b-table>
         <passwords-modal ref="passwordsModal"></passwords-modal>
@@ -55,12 +95,20 @@
     import ImportModal from '@/components/existing/ImportModal';
     import ExportModal from '@/components/existing/ExportModal';
     import Server from '@/server';
+    import ExistingInstanceDetails from '@/components/existing/ExistingInstanceDetails';
+
+    import TimeService from '@/business/timeService';
 
     const DEFAULT_STATE = 'NOT_FOUND';
-    
+
     export default {
         components: {
-            ExportModal, LoadingSpinner, InstanceButtons, PasswordsModal, ImportModal
+            ExistingInstanceDetails,
+            ExportModal,
+            LoadingSpinner,
+            InstanceButtons,
+            PasswordsModal,
+            ImportModal
         },
 
         data() {
@@ -68,24 +116,67 @@
                 initLoading: true,
                 polling: null,
                 isLoading: false,
-                actionInProgress: { },
-
+                actionInProgress: {},
+                existingInstancesLoaded: true,
                 fields: [
-                    { key: 'id', label: 'ID', sortable: true },
-                    { key: 'status', label: 'Status' },
-                    { key: 'comment', label: 'Comment' },
-                    { key: 'url', label: 'URL' },
-                    { key: 'buttons', label: '' }
+                    {
+                        key: 'id',
+                        label: 'ID',
+                        sortable: true
+                    },
+                    {
+                        key: 'status',
+                        label: 'Status'
+                    },
+                    {
+                        key: 'comment',
+                        label: 'Comment'
+                    },
+                    {
+                        key: 'url',
+                        label: 'URL'
+                    },
+                    {
+                        key: 'show_details'
+                    },
+                    {
+                        key: 'buttons',
+                        label: ''
+                    }
+                ],
+                deletedInstancesField: [
+                    {
+                        key: 'id',
+                        label: 'ID',
+                        sortable: true
+                    },
+                    {
+                        key: 'deleted_at',
+                        label: 'Deleted at',
+                        sortable: true
+                    },
+                    {
+                        key: 'comment',
+                        label: 'Comment'
+                    },
+                    {
+                        key: 'show_details'
+                    },
+                    {
+                        key: 'buttons',
+                        label: ''
+                    }
                 ]
             };
         },
 
         computed: {
-            ...mapGetters(['existingInstances'])
+            ...mapGetters(['existingInstances', 'deletedInstances'])
         },
 
         created() {
             this.loadExistingInstances();
+            this.loadDeletedInstances();
             this.pollStates();
         },
 
@@ -95,6 +186,10 @@
 
 
         methods: {
+            toUTCString(time){
+                return TimeService.toUTCString(time);
+            },
+            
             async loadExistingInstances(forceReload = false) {
                 if (!forceReload) {
                     this.isLoading = true;
@@ -113,11 +208,26 @@
                     this.initLoading = false;
                 }
             },
-            
+
+            async loadDeletedInstances() {
+                try {
+                    await this.$store.dispatch('loadDeletedInstances');
+                }
+                catch (e) {
+                    this.$eventBus.$emit('showErrorToast', 'Error loading deleted instances!');
+                }
+            },
+
             pollStates() {
-                this.polling = setInterval(() => {
-                    this.loadExistingInstances(false);
-                }, 5000);
+                if(this.existingInstancesLoaded) {
+                    this.polling = setInterval(() => {
+                        this.loadExistingInstances(false);
+                    }, 5000);
+                    
+                }
+                else {
+                    clearInterval(this.polling);
+                }
             },
 
             getInstanceStates() {
@@ -140,11 +250,21 @@
                     Vue.set(item, 'status', DEFAULT_STATE);
                 }
             },
-            
-            resetAndReload() {
-                this.loadExistingInstances(true);
-            }
 
+            resetAndReload() {
+                if(this.existingInstancesLoaded){
+                    this.loadExistingInstances(true);
+                }
+                else {
+                    this.loadDeletedInstances();
+                }
+            },
+            
+            displayInstances() {
+                this.existingInstancesLoaded = !this.existingInstancesLoaded;
+                this.resetAndReload();
+                this.pollStates();
+            }
         }
     };
 </script>

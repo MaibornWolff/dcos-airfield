@@ -9,6 +9,8 @@ const defaultConfigurations = require('./defaultConfigurations');
 const BASE_PATH = '/api/zeppelin';
 const DEFAULT_TIMEOUT = 1000;
 
+
+
 app.get(BASE_PATH + '/configurations', function(req, res){
     setTimeout(() => res.json({
         status: 200,
@@ -26,6 +28,21 @@ app.get('/api/security', function(req, res){
             username: 'Alwin'
         }
     }), DEFAULT_TIMEOUT / 2);
+});
+
+app.get(BASE_PATH + '/deleted/instance', function(req, res){ // get all deleted instances
+    setTimeout(() => res.json({
+        status: 200,
+        data: {
+            instances: existingInstances.get('deleted')
+        } }), DEFAULT_TIMEOUT);
+});
+
+app.delete(BASE_PATH + '/deleted/instance/*', function(req, res){ // delete instance from stored deleted instances
+    const pathParts = req.path.split('/');
+    const id = pathParts.pop();
+    existingInstances.deleteFromDeletedInstances(id);
+    setTimeout(() => res.send(''), DEFAULT_TIMEOUT);
 });
 
 app.post(BASE_PATH + '/instance', function(req, res){ // create instance

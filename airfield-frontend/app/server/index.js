@@ -10,7 +10,6 @@ export default {
 
     async createNewInstance(configuration) {
         const clonedConfig = JSON.parse(JSON.stringify(configuration));
-        
         if (clonedConfig.configuration.libraries[0].tensorflow){
             delete clonedConfig.configuration.libraries[0].tensorflow;
             clonedConfig.configuration.libraries[0].libraries.push('tensorflow');
@@ -31,6 +30,15 @@ export default {
     async getExistingInstances() {
         const { data: result } = await axios.get(BASE_PATH + '/instance');
         return result.data.instances;
+    },
+    
+    async getDeletedInstances() {
+        const { data: result } = await axios.get(BASE_PATH + '/deleted/instance');
+        return result.data.instances;
+    },
+
+    async deleteInstanceFromDeletedInstances(instanceId) {
+        await axios.delete(BASE_PATH + '/deleted/instance/' + instanceId);
     },
 
     async getInstanceState(instanceId) {

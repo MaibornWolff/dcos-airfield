@@ -25,7 +25,11 @@ import {
     faExclamationTriangle,
     faCog,
     faUpload,
-    faDownload
+    faDownload,
+    faComment,
+    faMoneyBillAlt,
+    faMicrochip,
+    faHdd
 } from '@fortawesome/free-solid-svg-icons';
 
 import {
@@ -55,7 +59,11 @@ library.add(
     faExclamationTriangle,
     faCog,
     faUpload,
-    faDownload
+    faDownload,
+    faComment,
+    faMoneyBillAlt,
+    faMicrochip,
+    faHdd
 );
 
 Vue.component('fa', FontAwesomeIcon);
