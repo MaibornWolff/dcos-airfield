@@ -16,21 +16,39 @@ import hashlib
 # custom imports
 import config
 
-
 CREATE_NOTEBOOK_API_URL = "/api/notebook"
-KEY = 'configuration'
+CONFIG_KEY = 'configuration'
 ID_KEY = 'id'
 LABEL_KEY = 'labels'
 HOST_KEY = 'HAPROXY_0_VHOST'
 COMMENT_KEY = 'comment'
 LIBRARIES_KEY = 'libraries'
-USERS_KEY = 'ZEPPELIN_SHIRO_CONF'
+ZEPPELIN_SHIRO_CONFIG_KEY = 'ZEPPELIN_SHIRO_CONF'
 ENV_KEY = 'env'
 CPUS_KEY = "cpus"
 MEM_KEY = "mem"
+CREATED_AT_KEY = "created_at"
+HISTORY_KEY = "history"
+COMMENT_ONLY_KEY = "comment_only"
+CREATED_BY_KEY = "createdBy"
+DELETE_AT_KEY = "deleteAt"
+USERS_KEY = "users"
+INSTANCES_KEY = "instances"
+USER_MANAGEMENT_KEY = "usermanagement"
+COSTS_OBJECT_KEY = "costsAsObject"
+URL_KEY = "url"
+TEMPLATE_ID_KEY = "template_id"
 PYTHON_PACKAGES_KEY = 'PYTHON_PACKAGES'
 R_PACKAGES_KEY = 'R_PACKAGES'
-DELETE_AT_KEY = 'delete_at'
+
+STATUS_KEY = "status"
+TIME_KEY = "time"
+RESOURCES_KEY = "resources"
+ZEPPELIN_KEY = "zeppelin"
+SPARK_KEY = "spark"
+SPARK_CORES_KEY = "SPARK_CORES_MAX"
+SPARK_MEM_KEY = "SPARK_EXECUTOR_MEMORY"
+
 INSTANCE_URL_PREFIX = 'https://'
 LANGUAGE_KEY = 'language'
 LANGUAGE_PYTHON = 'Python'
@@ -65,7 +83,7 @@ class ZeppelinConfigurationBuilder(object):
         if config.MARATHON_APP_GROUP:
             app_id = "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
         instance_url = self._parse_url(instance_id)
-        options = custom_configuration[KEY]
+        options = custom_configuration[CONFIG_KEY]
         # Add configuration options to app definition
         app_definition[ID_KEY] = app_id
         app_definition[LABEL_KEY][HOST_KEY] = instance_url
@@ -78,55 +96,62 @@ class ZeppelinConfigurationBuilder(object):
             app_definition[ENV_KEY][PYTHON_PACKAGES_KEY] = python_packages_string
         if r_packages_string:
             app_definition[ENV_KEY][R_PACKAGES_KEY] = r_packages_string
-        app_definition[ENV_KEY][USERS_KEY] = self._create_user_config_file(
-            options["users"],
-            options["usermanagement"]) if options["usermanagement"] != "no" else ""
+        app_definition[ENV_KEY][ZEPPELIN_SHIRO_CONFIG_KEY] = self._create_user_config_file(
+            options[USERS_KEY],
+            options[USER_MANAGEMENT_KEY]) if options[USER_MANAGEMENT_KEY] != "no" else ""
 
         # check for some options and add them if necessary
-        if "created_at" not in custom_configuration:
-            custom_configuration["created_at"] = time.time()
+        if CREATED_AT_KEY not in custom_configuration:
+            custom_configuration[CREATED_AT_KEY] = time.time()
 
-        if "history" not in custom_configuration:
+        if HISTORY_KEY not in custom_configuration:
             if redeploy:
-                if "comment_only" not in custom_configuration:
-                    custom_configuration["history"] = self.create_history_list(
+                if COMMENT_ONLY_KEY not in custom_configuration:
+                    custom_configuration[HISTORY_KEY] = self.create_history_list(
                         [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
                         custom_configuration)
             else:
-                custom_configuration["history"] = self.create_history_list(
+                custom_configuration[HISTORY_KEY] = self.create_history_list(
                     InstanceRunningTypes.RUNNING,
                     custom_configuration)
         else:
             # adds the redeploy history
             if redeploy:
-                if "comment_only" not in custom_configuration:
-                    custom_configuration["history"].extend(
+                if COMMENT_ONLY_KEY not in custom_configuration:
+                    custom_configuration[HISTORY_KEY].extend(
                         self.create_history_list(
                             [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
                             custom_configuration))
-        if custom_configuration["createdBy"] == '':
-            custom_configuration["createdBy"] = 'undefined'
+        if custom_configuration[CREATED_BY_KEY] == '':
+            custom_configuration[CREATED_BY_KEY] = 'undefined'
+
+        # overwrites the costs send from the frontend
+        options[COSTS_OBJECT_KEY] = config.MEMORY_AND_CORE_COSTS
+
 
         # Create entry for config store with only selected values
-        metadata = {"comment": custom_configuration["comment"],
-                    "createdBy": custom_configuration["createdBy"],
-                    "deleteAt": custom_configuration["deleteAt"],
-                    KEY: {key: options[key] for key in  # this will copy most of the values of the "configuration" entry
-                          [CPUS_KEY, ENV_KEY, MEM_KEY, "instances", "users", "usermanagement", "costsAsObject"]},
-                    'url': INSTANCE_URL_PREFIX + instance_url,
-                    'created_at': custom_configuration["created_at"],
-                    'history': custom_configuration["history"],
-                    'id': instance_id,
-                    "template_id": custom_configuration["template_id"]}
+        metadata = {COMMENT_KEY: custom_configuration[COMMENT_KEY],
+                    CREATED_BY_KEY: custom_configuration[CREATED_BY_KEY],
+                    DELETE_AT_KEY: custom_configuration[DELETE_AT_KEY],
+                    CONFIG_KEY: {key: options[key] for key in
+                                 # this will copy most of the values of the CONFIG_KEY entry
+                                 [CPUS_KEY, ENV_KEY, MEM_KEY, INSTANCES_KEY, USERS_KEY, USER_MANAGEMENT_KEY,
+                                  COSTS_OBJECT_KEY]},
+                    URL_KEY: INSTANCE_URL_PREFIX + instance_url,
+                    CREATED_AT_KEY: custom_configuration[CREATED_AT_KEY],
+                    HISTORY_KEY: custom_configuration[HISTORY_KEY],
+                    ID_KEY: instance_id,
+                    TEMPLATE_ID_KEY: custom_configuration[TEMPLATE_ID_KEY]}
         # print(metadata)
-        metadata[KEY]["users"] = [] if options["usermanagement"] == "no" else metadata[KEY][
-            "users"]  # remove users if no usermanagement
-        metadata[KEY][LIBRARIES_KEY] = []
-        for lib in custom_configuration[KEY][LIBRARIES_KEY]:  # libraries goes another level deeper
+        metadata[CONFIG_KEY][USERS_KEY] = [] if options[USER_MANAGEMENT_KEY] == "no" else metadata[CONFIG_KEY][
+            USERS_KEY]  # remove users if no usermanagement
+        metadata[CONFIG_KEY][LIBRARIES_KEY] = []
+        for lib in custom_configuration[CONFIG_KEY][LIBRARIES_KEY]:  # libraries goes another level deeper
             try:
-                metadata[KEY][LIBRARIES_KEY].append({key: lib[key] for key in {"language", "libraries", "tensorflow"}})
+                metadata[CONFIG_KEY][LIBRARIES_KEY].append(
+                    {key: lib[key] for key in {LANGUAGE_KEY, LIBRARIES_KEY, TENSORFLOW}})
             except KeyError:
-                metadata[KEY][LIBRARIES_KEY].append({key: lib[key] for key in {"language", "libraries"}})
+                metadata[CONFIG_KEY][LIBRARIES_KEY].append({key: lib[key] for key in {LANGUAGE_KEY, LIBRARIES_KEY}})
 
         return app_definition, metadata
 
@@ -145,19 +170,18 @@ class ZeppelinConfigurationBuilder(object):
         if status in InstanceRunningTypes:
             status = status.name
         return {
-            "status": status,
-            "time": time.time(),
-            "resources": {
-                "zeppelin": {
-                    "cpu_cores": configuration["configuration"]["cpus"],
-                    "ram": configuration["configuration"]["mem"]
+            STATUS_KEY: status,
+            TIME_KEY: time.time(),
+            RESOURCES_KEY: {
+                ZEPPELIN_KEY: {
+                    CPUS_KEY: configuration[CONFIG_KEY][CPUS_KEY],
+                    MEM_KEY: configuration[CONFIG_KEY][MEM_KEY]
                 },
-                "spark": {
-                    "cpu_cores": configuration["configuration"]["env"]["SPARK_CORES_MAX"],
-                    "ram": configuration["configuration"]["env"]["SPARK_EXECUTOR_MEMORY"]
+                SPARK_KEY: {
+                    CPUS_KEY: configuration[CONFIG_KEY][ENV_KEY][SPARK_CORES_KEY],
+                    MEM_KEY: configuration[CONFIG_KEY][ENV_KEY][SPARK_MEM_KEY]
                 }
-            },
-            "costsAsObject": configuration["configuration"]["costsAsObject"],
+            }
         }
 
     def _parse_additional_packages(self, configuration: dict):

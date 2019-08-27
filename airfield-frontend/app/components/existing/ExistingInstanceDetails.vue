@@ -116,14 +116,14 @@
                 const historyLength = this.item.history.length - 1;
                 for (let i = 0; i < historyLength; i++) {
                     if (statusList.includes(this.item.history[i].status)) {
-                        costs[this.item.history[i].costsAsObject.currency] += this.computeCosts(i);
+                        costs[this.item.configuration.costsAsObject.currency] += this.computeCosts(i);
                     }
                 }
                 if (typeof this.item.deleted_at !== 'undefined') {
-                    costs[this.item.history[historyLength].costsAsObject.currency] += this.computeCosts(historyLength, this.item.deleted_at - this.time);
+                    costs[this.item.configuration.costsAsObject.currency] += this.computeCosts(historyLength, this.item.deleted_at - this.time);
                 }
                 else {
-                    costs[this.item.history[historyLength].costsAsObject.currency] += this.computeCosts(historyLength, new Date().getTime() / 1000 - this.time);
+                    costs[this.item.configuration.costsAsObject.currency] += this.computeCosts(historyLength, new Date().getTime() / 1000 - this.time);
                 }
                 return costs;
             },
@@ -136,21 +136,30 @@
                     }
                     time = this.item.history[index + 1].time - this.item.history[index].time;
                 }
-                const coreCost = this.item.history[index].costsAsObject.core_per_minute * (parseInt(this.item.history[index].resources.spark.cpu_cores, 10) * parseInt(this.item.configuration.instances, 10) + parseInt(this.item.history[index].resources.zeppelin.cpu_cores, 10));
-                const ramCost = this.item.history[index].costsAsObject.core_per_minute * (parseFloat(this.item.history[index].resources.spark.ram) * 1024 * parseInt(this.item.configuration.instances, 10) + parseFloat(this.item.history[index].resources.zeppelin.ram)) / 1000;
-                return (coreCost + ramCost) * (time / 60);
+                const corePerMinute = this.item.configuration.costsAsObject.core_per_minute;
+                const ramPerMinute = this.item.configuration.costsAsObject.ram_in_gb_per_minute;
+                const sparkCpus = parseInt(this.item.history[index].resources.spark.cpus, 10);
+                const zeppelinCpus = parseInt(this.item.history[index].resources.zeppelin.cpus, 10);
+                const sparkMemInMB = parseFloat(this.item.history[index].resources.spark.mem);
+                const zeppelinMemInGB = parseFloat(this.item.history[index].resources.zeppelin.mem);
+                const instances = parseInt(this.item.configuration.instances, 10);
+                
+                const coreCost = corePerMinute * (sparkCpus * instances + zeppelinCpus);
+                const ramCost = ramPerMinute * (sparkMemInMB * 1024 * instances + zeppelinMemInGB) / 1000;
+                const roundedTime = Math.floor(time);
+                
+                return (coreCost + ramCost) * (roundedTime / 60);
 
             },
 
             setCosts() {
-                if (!this.pollingCosts) {
-                    this.costsHumanized = this.formatCosts(this.sumCosts());
-                    if (typeof this.item.deleted_at === 'undefined') {
-                        this.pollingCosts = setInterval(() => {
-                            this.costsHumanized = this.formatCosts(this.sumCosts());
-                        }, 30000);
-                    }
+                this.costsHumanized = this.formatCosts(this.sumCosts());
+                if (typeof this.item.deleted_at === 'undefined') {
+                    this.pollingCosts = setInterval(() => {
+                        this.costsHumanized = this.formatCosts(this.sumCosts());
+                    }, 500);
                 }
+                
             },
 
             setRunningTime() {

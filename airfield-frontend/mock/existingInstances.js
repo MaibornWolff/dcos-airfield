@@ -19,15 +19,14 @@ function createHistoryObject(instance, newStatus, time) {
     return {
         status: newStatus === 'STOPPED' ? 'STOPPED' : 'RUNNING',
         time: typeof time === 'undefined' ? Math.floor(Date.now() / 1000) : time,
-        costsAsObject: instance.configuration.costsAsObject,
         resources: {
             zeppelin: {
-                cpu_cores: instance.configuration.cpus,
-                ram: instance.configuration.mem
+                cpus: instance.configuration.cpus,
+                mem: instance.configuration.mem
             },
             spark: {
-                cpu_cores: instance.configuration.env.SPARK_CORES_MAX,
-                ram: instance.configuration.env.SPARK_EXECUTOR_MEMORY
+                cpus: instance.configuration.env.SPARK_CORES_MAX,
+                mem: instance.configuration.env.SPARK_EXECUTOR_MEMORY
             }
         }
     };

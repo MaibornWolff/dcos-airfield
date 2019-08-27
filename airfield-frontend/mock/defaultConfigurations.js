@@ -18,8 +18,8 @@ module.exports = [{
         }],
         costsAsObject: {
             currency: 'EURO',
-            core_per_minute: 0.99,
-            ram_in_gb_per_minute: 0.49
+            core_per_minute: 0.016667,
+            ram_in_gb_per_minute: 0.016667
         },
         mem: 8192,
         usermanagement: 'manual',
@@ -55,8 +55,8 @@ module.exports = [{
         }],
         costsAsObject: {
             currency: 'EURO',
-            core_per_minute: 0.99,
-            ram_in_gb_per_minute: 0.49
+            core_per_minute: 0.016667,
+            ram_in_gb_per_minute: 0.016667
         },
         mem: 16384,
         usermanagement: 'random',
@@ -89,8 +89,8 @@ module.exports = [{
         }],
         costsAsObject: {
             currency: 'EURO',
-            core_per_minute: 0.99,
-            ram_in_gb_per_minute: 0.49
+            core_per_minute: 0.016667,
+            ram_in_gb_per_minute: 0.016667
         },
         mem: 32768,
         usermanagement: 'no',

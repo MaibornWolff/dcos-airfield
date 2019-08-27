@@ -61,22 +61,15 @@
 
             <b-tab title="Costs">
                 <h6><fa icon="money-bill-alt"></fa>currency</h6>
-                <input type="radio" value="EURO" v-model="selectedNewInstance.configuration.costsAsObject.currency">
-                <label>Euro</label>
-                <br>
-                <input type="radio" value="POUND" v-model="selectedNewInstance.configuration.costsAsObject.currency">
-                <label>Pound</label>
-                <br>
-                <input type="radio" value="DOLLAR" v-model="selectedNewInstance.configuration.costsAsObject.currency">
-                <label>Dollar</label>
+                <label>{{ selectedNewInstance.configuration.costsAsObject.currency }}</label>
                 <br>
                 <h6><fa icon="microchip"></fa>CPU Core</h6>
                 <label>costs per minute per core</label>
-                <b-form-input v-model="selectedNewInstance.configuration.costsAsObject.core_per_minute"></b-form-input>
+                <label>{{ selectedNewInstance.configuration.costsAsObject.core_per_minute }}</label>
 
                 <h6><fa icon="hdd"></fa>RAM</h6>
                 <label>costs per minute per RAM in GB</label>
-                <b-form-input v-model="selectedNewInstance.configuration.costsAsObject.ram_in_gb_per_minute"></b-form-input>
+                <label>{{ selectedNewInstance.configuration.costsAsObject.ram_in_gb_per_minute }}</label>
             </b-tab>
 
             <b-tab title="Security">
@@ -86,7 +79,8 @@
                             <b-form-radio-group buttons
                                                 v-model="selectedNewInstance.configuration.usermanagement"
                                                 :options="options"
-                                                name="usermanagement"></b-form-radio-group>
+                                                name="usermanagement"
+                            ></b-form-radio-group>
                         </b-form-group>
                     </b-row>
                 </b-container>
@@ -104,12 +98,13 @@
                     </b-row>
                     <b-row class="alignedRow mt-2" v-if="checkShowAdd">
                         <b-col>
-                            <button class="btn" @click="addRow()">Add new user</button>
+                            <button class="btn" @click="addRow()">
+                                Add new user
+                            </button>
                         </b-col>
                     </b-row>
                 </b-container>
             </b-tab>
-            
         </b-tabs>
 
         <br>

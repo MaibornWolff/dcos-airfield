@@ -26,6 +26,12 @@ BASE_HOST = os.environ['AIRFIELD_BASE_HOST']
 # -------------------------------------------------------------------------------
 # 2. General settings
 # -------------------------------------------------------------------------------
+MEMORY_AND_CORE_COSTS = {
+    "currency": "EURO",
+    "core_per_minute": 0.016667,
+    "ram_in_gb_per_minute": 0.016667
+}
+
 APP_SECRET = 'super-secret-key'
 
 SESSION_TYPE = 'filesystem'

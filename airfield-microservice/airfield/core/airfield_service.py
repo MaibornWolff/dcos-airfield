@@ -18,12 +18,13 @@ from airfield.utility import TechnicalException
 from .notebook_transfer_thread import NotebookTransferThread
 
 
-DELETE_AT_KEY = 'delete_at'
+DELETE_AT_KEY = 'deleteAt'
 CREATE_AT_KEY = 'created_at'
 DEPLOYMENT_TIMEOUT = 180  # 3min
 ID_KEY = 'id'
 CONFIGURATION_KEY = 'configuration'
 CONFIGURATION_ID_KEY = 'id'
+COSTS_OBJECT_KEY = 'costsAsObject'
 
 
 
@@ -188,6 +189,8 @@ class AirfieldService(object):
         result = ApiResponse()
         configuration_data = self._get_local_default_configurations()
         for instance_type in configuration_data:
+            # sets the memory and core costs from the config file
+            instance_type[COSTS_OBJECT_KEY] = config.MEMORY_AND_CORE_COSTS
             del instance_type["notebook_templates"]
         result.status = ApiResponseStatus.SUCCESS
         result.data = {

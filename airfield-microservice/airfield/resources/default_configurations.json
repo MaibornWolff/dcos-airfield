@@ -13,11 +13,6 @@
       "mem": 8192,
       "usermanagement": "no",
       "users": [],
-      "costsAsObject": {
-        "currency": "EURO",
-        "core_per_minute": 0.0,
-        "ram_in_gb_per_minute": 0.0
-      },
       "env": {
         "SPARK_CORES_MAX": "2",
         "SPARK_EXECUTOR_MEMORY": "2g",
@@ -63,11 +58,6 @@
       "instances": 1,
       "cpus": 4,
       "mem": 32768,
-      "costsAsObject": {
-        "currency": "EURO",
-        "core_per_minute": 0.0,
-        "ram_in_gb_per_minute": 0.0
-      },
       "env": {
         "SPARK_CORES_MAX": "4",
         "SPARK_EXECUTOR_MEMORY": "8g",
@@ -100,11 +90,6 @@
       "instances": 1,
       "cpus": 4,
       "mem": 32768,
-      "costsAsObject": {
-        "currency": "EURO",
-        "core_per_minute": 0.0,
-        "ram_in_gb_per_minute": 0.0
-      },
       "env": {
         "SPARK_CORES_MAX": "8",
         "SPARK_EXECUTOR_MEMORY": "16g",
