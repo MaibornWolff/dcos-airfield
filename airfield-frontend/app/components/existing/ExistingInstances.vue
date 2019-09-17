@@ -35,10 +35,6 @@
                         :title="'Running for ' + props.item.stuck_duration + 'min, try redeploying with less resources'"></fa>
                 </span>
             </template>
-
-            <template slot="url" slot-scope="props">
-                <a target="_blank" :href="props.value">{{ props.value }}</a>
-            </template>
             <template slot="show_details" slot-scope="row">
                 <b-button
                     size="sm"
@@ -57,6 +53,9 @@
                                   @show-passwords="$refs.passwordsModal.open(props.item.configuration.users)"
                                   @load-existing-instances="loadExistingInstances(true)"
                                   @get-instance-state="getInstanceState(props.item)"></instance-buttons>
+            </template>
+            <template slot="url" slot-scope="props">
+                <a target="_blank" :href="parseProxyURL(props.item.id)">{{ '/proxy/' + props.item.id }}</a>
             </template>
         </b-table>
         <b-table v-if="!existingInstancesLoaded" striped hover :items="deletedInstances" :fields="deletedInstancesField" class="mt-4">
@@ -100,6 +99,8 @@
     import TimeService from '@/business/timeService';
 
     const DEFAULT_STATE = 'NOT_FOUND';
+    const PROXY_BASE_PATH = 'proxy';
+    const BASE_PATH = 'http';
 
     export default {
         components: {
@@ -175,8 +176,7 @@
         },
 
         created() {
-            this.loadExistingInstances();
-            this.loadDeletedInstances();
+            this.loadAllInstances();
             this.pollStates();
         },
 
@@ -186,8 +186,31 @@
 
 
         methods: {
+            getProxyURLPrefix(){
+                const url = window.location.href;
+                const domain = url.split('#')[0];
+                const domainParts = domain.split('/');
+                domainParts.forEach(v => {
+                    if(v.includes(BASE_PATH)){
+                        v = BASE_PATH;
+                    }
+                });
+                return domainParts.join('/');
+            },
+            
+            parseProxyURL(instanceId){
+                return this.getProxyURLPrefix() + PROXY_BASE_PATH + '/' + instanceId;
+            },
+            
             toUTCString(time){
                 return TimeService.toUTCString(time);
+            },
+            
+            async loadAllInstances(){
+                this.isLoading = true;
+                this.loadExistingInstances();
+                this.loadDeletedInstances();
+                this.isLoading = false;
             },
             
             async loadExistingInstances(forceReload = false) {
@@ -204,7 +227,9 @@
                     this.$eventBus.$emit('showErrorToast', 'Error loading existing instances!');
                 }
                 finally {
-                    this.isLoading = false;
+                    if (!forceReload) {
+                        this.isLoading = false;
+                    }
                     this.initLoading = false;
                 }
             },

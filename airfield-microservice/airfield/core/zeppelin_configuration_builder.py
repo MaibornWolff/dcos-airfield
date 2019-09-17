@@ -9,12 +9,12 @@ import time
 import random
 import string
 from enum import Enum
-import math
 
 from jinja2 import Template
 import hashlib
 # custom imports
 import config
+from . import UserService
 
 CREATE_NOTEBOOK_API_URL = "/api/notebook"
 CONFIG_KEY = 'configuration'
@@ -82,7 +82,7 @@ class ZeppelinConfigurationBuilder(object):
         app_id = instance_id
         if config.MARATHON_APP_GROUP:
             app_id = "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
-        instance_url = self._parse_url(instance_id)
+        instance_url = self.parse_url(instance_id)
         options = custom_configuration[CONFIG_KEY]
         # Add configuration options to app definition
         app_definition[ID_KEY] = app_id
@@ -100,10 +100,13 @@ class ZeppelinConfigurationBuilder(object):
             options[USERS_KEY],
             options[USER_MANAGEMENT_KEY]) if options[USER_MANAGEMENT_KEY] != "no" else ""
 
-        # check for some options and add them if necessary
         if CREATED_AT_KEY not in custom_configuration:
             custom_configuration[CREATED_AT_KEY] = time.time()
 
+        if CREATED_BY_KEY not in custom_configuration or custom_configuration[CREATED_BY_KEY] == '':
+            custom_configuration[CREATED_BY_KEY] = UserService.get_user_name()
+
+        # check for some options and add them if necessary
         if HISTORY_KEY not in custom_configuration:
             if redeploy:
                 if COMMENT_ONLY_KEY not in custom_configuration:
@@ -122,12 +125,9 @@ class ZeppelinConfigurationBuilder(object):
                         self.create_history_list(
                             [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
                             custom_configuration))
-        if custom_configuration[CREATED_BY_KEY] == '':
-            custom_configuration[CREATED_BY_KEY] = 'undefined'
 
         # overwrites the costs send from the frontend
         options[COSTS_OBJECT_KEY] = config.MEMORY_AND_CORE_COSTS
-
 
         # Create entry for config store with only selected values
         metadata = {COMMENT_KEY: custom_configuration[COMMENT_KEY],
@@ -243,18 +243,18 @@ class ZeppelinConfigurationBuilder(object):
         hashed_users = []
         for user in users:
             if (usermanagement == "manual" and (user["username"] == "" or user["password"] == "")) or (
-                    usermanagement == "random" and user["username"] == ""):
+                    usermanagement in ["random", "oidc"] and user["username"] == ""):
                 # filter empty lines/users
                 users.remove(user)
                 continue
             if usermanagement == "random":
-                user["password"] = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(20))
+                user["password"] = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
                 # this password will be accessible outside the function because dict is a mutable type
             # hash passwords and store for template
             hashed_password = hashlib.sha256(user["password"].encode("utf-8")).hexdigest()
             hashed_users.append({"username": user["username"], "password": hashed_password})
-        if len(users) is 0:
-            # dont create a file if no users are to be created
+        if len(users) is 0 or usermanagement == "oidc":
+            # dont create a file if no users are to be created or oidc is choosen
             return ""
         else:
             with open("airfield/resources/shiro.ini.jinja2") as file_:
@@ -265,6 +265,7 @@ class ZeppelinConfigurationBuilder(object):
     def _generate_instance_id(self) -> str:
         return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(9))
 
-    def _parse_url(self, instance_id: str) -> str:
+    @staticmethod
+    def parse_url(instance_id: str) -> str:
         url = instance_id + config.BASE_HOST
         return url

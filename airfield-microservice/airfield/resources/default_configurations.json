@@ -5,7 +5,7 @@
     "tags": ["Small", "No Libs",  "Sample Templates"],
     "icon": "small",
     "comment": "",
-    "createdBy": "undefined",
+    "createdBy": "",
     "configuration": {
       "id": "",
       "instances": 1,
@@ -52,7 +52,7 @@
     "tags": ["Medium", "No Libs"],
     "icon": "medium",
     "comment": "",
-    "createdBy": "undefined",
+    "createdBy": "",
     "configuration": {
       "id": "",
       "instances": 1,
@@ -84,7 +84,7 @@
     "tags": ["Large", "No Libs"],
     "icon": "large",
     "comment": "",
-    "createdBy": "undefined",
+    "createdBy": "",
     "configuration": {
       "id": "",
       "instances": 1,

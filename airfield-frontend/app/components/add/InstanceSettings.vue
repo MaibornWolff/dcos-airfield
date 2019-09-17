@@ -60,16 +60,15 @@
             </b-tab>
 
             <b-tab title="Costs">
-                <h6><fa icon="money-bill-alt"></fa>currency</h6>
-                <label>{{ selectedNewInstance.configuration.costsAsObject.currency }}</label>
-                <br>
                 <h6><fa icon="microchip"></fa>CPU Core</h6>
-                <label>costs per minute per core</label>
-                <label>{{ selectedNewInstance.configuration.costsAsObject.core_per_minute }}</label>
+                <label>Eine CPU kostet pro Stunde {{ (selectedNewInstance.configuration.costsAsObject.core_per_minute * 60).toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }}.</label>
 
                 <h6><fa icon="hdd"></fa>RAM</h6>
-                <label>costs per minute per RAM in GB</label>
-                <label>{{ selectedNewInstance.configuration.costsAsObject.ram_in_gb_per_minute }}</label>
+                <label>Ein GB RAM kostet pro Stunde {{ (selectedNewInstance.configuration.costsAsObject.core_per_minute * 60).toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }}.</label>
+                
+                <h6><fa icon="money-bill-alt"></fa>Costs</h6>
+                <label>Mit dieser Konfiguration kostet die Instanz {{ getInstanceCostsPerHour().toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }} pro Stunde.</label>
+                <br>
             </b-tab>
 
             <b-tab title="Security">
@@ -117,6 +116,7 @@
     import { mapGetters } from 'vuex';
 
     import CreateInstanceButton from '@/components/add/CreateInstanceButton';
+    import CostService from '@/business/costService';
 
     function libraryAccessor(language) {
         const findLibrary = instance => instance.configuration.libraries.find(e => e.language === language);
@@ -143,7 +143,8 @@
                 options: [
                     { text: 'No Users', value: 'no' },
                     { text: 'Manual', value: 'manual' },
-                    { text: 'Random', value: 'random' }
+                    { text: 'Random', value: 'random' },
+                    { text: 'OIDC', value: 'oidc' }
                 ]
             };
         },
@@ -170,6 +171,10 @@
             deleteRow(user) {
                 const users = this.selectedNewInstance.configuration.users;
                 users.splice(users.indexOf(user), 1);
+            },
+            
+            getInstanceCostsPerHour(){
+                return CostService.getCostsPerMinutes(this.selectedNewInstance.configuration, 60);
             }
         }
     };

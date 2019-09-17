@@ -22,7 +22,7 @@
   },
   "labels": {
     "HAPROXY_GROUP": "external",
-    "HAPROXY_0_REDIRECT_TO_HTTPS": "true"
+    "HAPROXY_0_REDIRECT_TO_HTTPS": "false"
   },
   "healthChecks": [
     {

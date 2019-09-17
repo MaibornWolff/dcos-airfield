@@ -34,18 +34,19 @@
 
         <b-row class="mb-2">
             <b-col sm="3" class="text-sm-right"><b>Number of CPU cores:</b></b-col>
-            <b-col>{{ getNumberOfCPUCores(item.configuration) }}</b-col>
+            <b-col>{{ getNumberOfCPUCores() }}</b-col>
         </b-row>
 
         <b-row class="mb-2">
             <b-col sm="3" class="text-sm-right"><b>Number of RAM in GB:</b></b-col>
-            <b-col>{{ getNumberOfRAM(item.configuration) }}</b-col>
+            <b-col>{{ getNumberOfRAM() }}</b-col>
         </b-row>
     </b-card>
 </template>
 
 <script>
     import TimeService from '@/business/timeService';
+    import CostService from '@/business/costService';
     
     export default {
         name: 'ExistingInstanceDetails',
@@ -91,14 +92,7 @@
                 if (typeof costObject === 'undefined') {
                     return costObject;
                 }
-                let actualCost = '';
-                actualCost += costObject.EURO > 0 ? costObject.EURO.toFixed(2) + ' EURO; ' : '';
-                actualCost += costObject.POUND > 0 ? costObject.POUND.toFixed(2) + ' POUND; ' : '';
-                actualCost += costObject.DOLLAR > 0 ? costObject.DOLLAR.toFixed(2) + ' DOLLAR; ' : '';
-                if (actualCost === '') {
-                    actualCost = '0.00 ' + this.item.configuration.costsAsObject.currency + '; ';
-                }
-                return actualCost;
+                return costObject[this.item.configuration.costsAsObject.currency].toFixed(2) + ' ' + this.item.configuration.costsAsObject.currency + '; ';
             },
 
             sumCosts(statusList) {
@@ -108,11 +102,8 @@
                 if (typeof statusList === 'string') {
                     statusList = [statusList];
                 }
-                const costs = {
-                    EURO: 0,
-                    POUND: 0,
-                    DOLLAR: 0
-                };
+                const costs = {};
+                costs[this.item.configuration.costsAsObject.currency] = 0;
                 const historyLength = this.item.history.length - 1;
                 for (let i = 0; i < historyLength; i++) {
                     if (statusList.includes(this.item.history[i].status)) {
@@ -194,12 +185,12 @@
                 }
                 return sum;
             },
-            getNumberOfCPUCores(configuration) {
-                return +configuration.cpus + +configuration.env.SPARK_CORES_MAX * +configuration.instances;
+            getNumberOfCPUCores() {
+                return CostService.getNumberOfCPUCores(this.item.configuration);
             },
 
-            getNumberOfRAM(configuration) {
-                return (+configuration.mem + 1024 * parseFloat(configuration.env.SPARK_EXECUTOR_MEMORY) * +configuration.instances) / 1000;
+            getNumberOfRAM() {
+                return CostService.getNumberOfRAM(this.item.configuration);
             }
         }
     };

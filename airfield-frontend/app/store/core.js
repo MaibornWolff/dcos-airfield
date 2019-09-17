@@ -19,15 +19,6 @@ export default {
     },
 
     actions: {
-        addCreatedBy({ state, commit, rootGetters }){
-            const username = rootGetters['username']; // eslint-disable-line
-            const instance = state.selectedNewInstance;
-            if(typeof instance.createdBy === 'undefined'){
-                instance.createdBy = username;
-                commit('SET_NEW_SELECTED_INSTANCE', instance);
-            }
-            
-        },
         async loadDefaultConfigurations({ commit, state }) {
             
             if (state.defaultConfigurations.length > 0) {

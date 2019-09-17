@@ -36,7 +36,6 @@
             async createNewInstance() {
                 try {
                     this.isLoading = true;
-                    this.$store.dispatch('addCreatedBy');
                     await Server.createNewInstance(this.selectedNewInstance);
                     this.$eventBus.$emit('showSuccessToast', 'New instance created successfully.');
                     this.$store.dispatch('resetNewInstance');

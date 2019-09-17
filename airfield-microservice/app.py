@@ -66,10 +66,13 @@ def create_app():
     RequestID(app)
     logging.info('RequestID configured.')
     logging.info('Registering application blueprints...')
-    from airfield.api import ZeppelinBlueprint, AppBlueprint
+    from airfield.api import ZeppelinBlueprint, AppBlueprint, ProxyBlueprint, sockets, WebsocketBlueprint
     app.register_blueprint(AppBlueprint)
     app.register_blueprint(ZeppelinBlueprint,
                            url_prefix=config.API_PREFIX)
+    sockets.init_app(app)
+    sockets.register_blueprint(WebsocketBlueprint)
+    app.register_blueprint(ProxyBlueprint)
     logging.info('Application blueprints registered.')
     logging.info('Registering error handlers and metrics...')
 

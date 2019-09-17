@@ -38,6 +38,21 @@ class MarathonAdapter(object):
         self._setup_metrics()
         self.base_url, self.auth = retrieve_auth()
 
+    def get_instance_ip_address_and_port(self, instance_id: str) -> tuple:
+        if not instance_id:
+            raise Exception("No instance id provided")  # special format of the ids
+        url = self._get_marathon_url() + '/apps/%s/?embed=app.task' % instance_id
+        response = requests.get(url=url, auth=self.auth, verify=False)
+        try:
+            task = response.json()['app'].get("tasks")[0]
+            ip_address = task.get("ipAddresses")[0].get("ipAddress")
+            port = task.get("ports")[0]
+            return ip_address, port
+        except KeyError as e:
+            logging.error("Failed to get instance ip address and port: %s" % e)
+            self.marathon_error_metric.inc()
+            return None, None
+
     def get_instance_status(self, instance_id: str) -> InstanceState:
         if not instance_id:
             raise Exception("No instance id provided")
