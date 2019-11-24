@@ -131,21 +131,18 @@
             
             async commitInstance(){
                 if (this.item.comment === this.newComment){
+                    this.$eventBus.$emit('showSuccessToast', 'Instance committed successfully.');
                     return;
                 }
                 const oldComment = this.item.comment;
                 try {
-                    this.item.comment_only = true; // eslint-disable-line
                     this.item.comment = this.newComment;
-                    await Server.createNewInstance(this.item);
+                    await Server.commitInstance(this.item);
                     this.$eventBus.$emit('showSuccessToast', 'Instance committed successfully.');
                 }
                 catch (e) {
                     this.item.comment = oldComment;
                     this.$eventBus.$emit('showErrorToast', 'Error committing the instance!');
-                }
-                finally {
-                    Vue.delete(this.item, 'comment_only');
                 }
             }
         }

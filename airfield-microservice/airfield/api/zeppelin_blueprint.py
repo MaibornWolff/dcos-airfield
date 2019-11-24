@@ -8,15 +8,15 @@ from flask import Blueprint, request, Response
 from prometheus_client import generate_latest, Counter
 # custom imports
 from airfield.utility.serialization_utilities import clean_input_string
+from airfield.utility import ApiResponseStatus
 from airfield.core import airfield_service, UserService, AuthService
 
 
 ZeppelinBlueprint = Blueprint('zeppelin', __name__)
 airfield_requests_metrics = Counter('airfield_requests_total', 'HTTP Requests', ['endpoint', 'method'])
 
-
-
-@ZeppelinBlueprint.route('/instance/<instance_id>/state', methods=['GET'])
+# todo: fix authorisation
+@ZeppelinBlueprint.route('/instance/<instance_id>/state', methods=['GET'])  # get states
 @UserService.login_if_oidc
 def get_zeppelin_server_state(instance_id):
     instance_id = clean_input_string(instance_id)
@@ -25,7 +25,7 @@ def get_zeppelin_server_state(instance_id):
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/configurations', methods=['GET'])
+@ZeppelinBlueprint.route('/configurations', methods=['GET'])  # get default configurations
 @UserService.login_if_oidc
 def get_zeppelin_default_configurations():
     response = airfield_service.get_zeppelin_default_configurations()
@@ -41,7 +41,7 @@ def get_zeppelin_instances():
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/deleted/instance', methods=['GET'])  # get all
+@ZeppelinBlueprint.route('/deleted/instance', methods=['GET'])  # get all deleted instances
 @UserService.login_if_oidc
 def get_deleted_zeppelin_instances():
     response = airfield_service.get_deleted_zeppelin_instances_api()
@@ -49,11 +49,13 @@ def get_deleted_zeppelin_instances():
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/deleted/instance/<instance_id>', methods=['DELETE'])
+@ZeppelinBlueprint.route('/deleted/instance/<instance_id>', methods=['DELETE'])  # delete deleted instance
 @UserService.login_if_oidc
 def delete_instance_from_deleted_instances(instance_id):
     instance_id = clean_input_string(instance_id)
-    response = airfield_service.delete_deleted_zeppelin_instance(instance_id)
+    response = AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
+    if response.status == ApiResponseStatus.SUCCESS:
+        response = airfield_service.delete_deleted_zeppelin_instance(instance_id)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/deleted/instance/', method="DELETE").inc()
     return response.to_json(), response.status.value
 
@@ -63,17 +65,18 @@ def delete_instance_from_deleted_instances(instance_id):
 def create_zeppelin_instance():
     logging.debug('request data: {}'.format(request.data))
     instance_configuration = request.data
-    response = airfield_service.create_or_update_zeppelin_instance(instance_configuration)
+    response = airfield_service.create_or_update_zeppelin_instance(instance_configuration, deployment=True)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="GET").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/<instance_id>', methods=['DELETE'])
+@ZeppelinBlueprint.route('/instance/<instance_id>', methods=['DELETE'])  # delete
 @UserService.login_if_oidc
 def delete_instance(instance_id):
     instance_id = clean_input_string(instance_id)
-    AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
-    response = airfield_service.delete_existing_zeppelin_instance(instance_id)
+    response = AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
+    if response.status == ApiResponseStatus.SUCCESS:
+        response = airfield_service.delete_existing_zeppelin_instance(instance_id)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="DELETE").inc()
     return response.to_json(), response.status.value
 
@@ -81,13 +84,22 @@ def delete_instance(instance_id):
 @ZeppelinBlueprint.route('/instance/<instance_id>', methods=['PUT'])  # redeploy
 @UserService.login_if_oidc
 def redeploy_instance(instance_id):
-    AuthService.check_for_authorisation(clean_input_string(instance_id))  # automatically checks if oidc is activated
-    response = airfield_service.create_or_update_zeppelin_instance(request.data, instance_id, redeploy=True)
+    response = AuthService.check_for_authorisation(clean_input_string(instance_id))  # automatically checks if oidc is activated
+    if response.status == ApiResponseStatus.SUCCESS:
+        response = airfield_service.create_or_update_zeppelin_instance(request.data, instance_id, deployment=True)
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/instance/', method="PUT").inc()
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/<instance_id>/action/restart', methods=['POST'])
+@ZeppelinBlueprint.route('/commit/<instance_id>', methods=['PUT'])  # commit
+@UserService.login_if_oidc
+def commit_instance(instance_id):
+    response = airfield_service.create_or_update_zeppelin_instance(request.data, instance_id, deployment=False)
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/commit/', method="PUT").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/instance/<instance_id>/action/restart', methods=['POST'])  # restart
 @UserService.login_if_oidc
 def restart_instance(instance_id):
     instance_id = clean_input_string(instance_id)
@@ -96,7 +108,7 @@ def restart_instance(instance_id):
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/<instance_id>/action/start', methods=['POST'])
+@ZeppelinBlueprint.route('/instance/<instance_id>/action/start', methods=['POST'])  # start
 @UserService.login_if_oidc
 def start_instance(instance_id):
     instance_id = clean_input_string(instance_id)
@@ -105,7 +117,7 @@ def start_instance(instance_id):
     return response.to_json(), response.status.value
 
 
-@ZeppelinBlueprint.route('/instance/<instance_id>/action/stop', methods=['POST'])
+@ZeppelinBlueprint.route('/instance/<instance_id>/action/stop', methods=['POST'])  # stop
 @UserService.login_if_oidc
 def stop_instance(instance_id):
     instance_id = clean_input_string(instance_id)

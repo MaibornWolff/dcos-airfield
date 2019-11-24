@@ -10,6 +10,7 @@ class ApiResponseStatus(Enum):
     INTERNAL_ERROR = 500
     NOT_FOUND = 404
     CONFLICT = 409
+    UNAUTHORIZED = 401
 
 
 class ApiResponse(object):

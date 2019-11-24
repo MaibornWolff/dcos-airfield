@@ -68,8 +68,8 @@ function createGeneratedInstance(id, createdAt, deletedAt) {
             }],
             costsAsObject: {
                 currency: 'EURO',
-                core_per_minute: 0.99,
-                ram_in_gb_per_minute: 0.49
+                core_per_minute: 0.016667,
+                ram_in_gb_per_minute: 0.016667
             },
             mem: 16384,
             usermanagement: 'random',

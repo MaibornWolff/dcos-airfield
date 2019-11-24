@@ -264,7 +264,7 @@ class AirfieldService(object):
                 logging.error('Error while retrieving deleted zeppelin instances. Error={}'.format(e))
         return False
 
-    def create_or_update_zeppelin_instance(self, custom_settings: dict, previous_id=None, deployment=True, redeploy=False) -> ApiResponse:
+    def create_or_update_zeppelin_instance(self, custom_settings: dict, previous_id=None, deployment=True) -> ApiResponse:
         result = ApiResponse()
 
         if previous_id is not None:
@@ -286,7 +286,7 @@ class AirfieldService(object):
         try:
             logging.debug('Modifying zeppelin instance configuration with custom settings.')
             app_definition, metadata = self.configuration_builder.create_instance_configuration(
-                custom_configuration=custom_settings, app_definition=app_definition, redeploy=redeploy)
+                custom_configuration=custom_settings, app_definition=app_definition, deployment=deployment)
         except KeyError as e:
             logging.error('Error while parsing custom settings. Error={}'.format(e))
             logging.debug('Base configuration={}'.format(app_definition))

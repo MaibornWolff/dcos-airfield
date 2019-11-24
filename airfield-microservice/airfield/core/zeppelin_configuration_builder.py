@@ -66,11 +66,11 @@ class ZeppelinConfigurationBuilder(object):
     def __init__(self):
         logging.info('Initializing ConfigurationBuilder.')
 
-    def create_instance_configuration(self, custom_configuration: dict, app_definition: dict, redeploy=False):
+    def create_instance_configuration(self, custom_configuration: dict, app_definition: dict, deployment=False):
         """
         Creates a valid Zeppelin instance configuration based on parameters specified in frontend.
 
-        :param redeploy:  only needed if the instance is redeployed
+        :param deployment:  only needed if the instance is redeployed
         :param custom_configuration: the settings that are customizable in the frontend
         :param app_definition: The marathon app definition for the zeppelin instance
         :return: app definition for zeppelin instance and instance metadata for consul/etcd
@@ -107,24 +107,17 @@ class ZeppelinConfigurationBuilder(object):
             custom_configuration[CREATED_BY_KEY] = UserService.get_user_name()
 
         # check for some options and add them if necessary
-        if HISTORY_KEY not in custom_configuration:
-            if redeploy:
-                if COMMENT_ONLY_KEY not in custom_configuration:
-                    custom_configuration[HISTORY_KEY] = self.create_history_list(
-                        [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
-                        custom_configuration)
-            else:
+        if deployment:
+            if HISTORY_KEY not in custom_configuration:  # creates history
                 custom_configuration[HISTORY_KEY] = self.create_history_list(
-                    InstanceRunningTypes.RUNNING,
+                    [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
                     custom_configuration)
-        else:
-            # adds the redeploy history
-            if redeploy:
-                if COMMENT_ONLY_KEY not in custom_configuration:
-                    custom_configuration[HISTORY_KEY].extend(
-                        self.create_history_list(
-                            [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
-                            custom_configuration))
+            else:
+                # adds the deployment/redeployment history
+                custom_configuration[HISTORY_KEY].extend(
+                    self.create_history_list(
+                        [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
+                        custom_configuration))
 
         # overwrites the costs send from the frontend
         options[COSTS_OBJECT_KEY] = config.MEMORY_AND_CORE_COSTS

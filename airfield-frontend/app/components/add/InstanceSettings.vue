@@ -61,13 +61,13 @@
 
             <b-tab title="Costs">
                 <h6><fa icon="microchip"></fa>CPU Core</h6>
-                <label>Eine CPU kostet pro Stunde {{ (selectedNewInstance.configuration.costsAsObject.core_per_minute * 60).toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }}.</label>
+                <label>One CPU costs {{ (selectedNewInstance.configuration.costsAsObject.core_per_minute * 60).toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }} per hour.</label>
 
                 <h6><fa icon="hdd"></fa>RAM</h6>
-                <label>Ein GB RAM kostet pro Stunde {{ (selectedNewInstance.configuration.costsAsObject.core_per_minute * 60).toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }}.</label>
+                <label>One GB RAM costs {{ (selectedNewInstance.configuration.costsAsObject.core_per_minute * 60).toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }} per hour.</label>
                 
                 <h6><fa icon="money-bill-alt"></fa>Costs</h6>
-                <label>Mit dieser Konfiguration kostet die Instanz {{ getInstanceCostsPerHour().toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }} pro Stunde.</label>
+                <label>Using this configuration the instance costs {{ getInstanceCostsPerHour().toFixed(2) }} {{ selectedNewInstance.configuration.costsAsObject.currency }} per hour.</label>
                 <br>
             </b-tab>
 

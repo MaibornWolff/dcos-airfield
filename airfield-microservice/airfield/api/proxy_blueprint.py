@@ -4,6 +4,7 @@ from flask_sockets import Sockets
 import requests
 import websocket
 from airfield.core import AuthService, airfield_service, UserService
+from airfield.utility import ApiResponseStatus
 
 ProxyBlueprint = Blueprint('proxy', __name__)
 WebsocketBlueprint = Blueprint('websocket', __name__)
@@ -13,8 +14,9 @@ sockets = Sockets()
 @WebsocketBlueprint.route('/proxy/<instance_id>/ws')
 @UserService.login_if_oidc
 def websocket_proxy(ws, instance_id=None):
-    AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
-
+    response = AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
+    if response.status != ApiResponseStatus.SUCCESS:
+        return response.to_json(), response.status.value
     client = websocket.WebSocket()
     ip, port = airfield_service.get_instance_ip_address_and_port(instance_id)
     base_url = f'{ip}:{port}'
@@ -41,8 +43,10 @@ def websocket_proxy(ws, instance_id=None):
 @ProxyBlueprint.route("/proxy/<string:instance_id>/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
 @UserService.login_if_oidc
 def proxy(instance_id, path):
-    AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
-
+    response = AuthService.check_for_authorisation(instance_id)  # automatically checks if oidc is activated
+    print(response)
+    if response.status != ApiResponseStatus.SUCCESS:
+        return response.to_json(), response.status.value
     ip, port = airfield_service.get_instance_ip_address_and_port(instance_id)
     base_url = f'{ip}:{port}'
     url = f"http://{base_url}" + "/" + path

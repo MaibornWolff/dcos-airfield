@@ -1,6 +1,7 @@
 from config import OIDC_ACTIVATED
 from . import airfield_service
 from . import UserService
+from airfield.utility import ApiResponse, ApiResponseStatus
 
 
 class AuthService(object):
@@ -15,16 +16,21 @@ class AuthService(object):
         return False
 
     @staticmethod
-    def check_for_authorisation(instance_id):
+    def check_for_authorisation(instance_id) -> ApiResponse:
         # only for oidc authorisation
+        result = ApiResponse()
         if not OIDC_ACTIVATED:  # oidc is not activated so everyone is allowed
-            return True
+            result.status = ApiResponseStatus.SUCCESS
+            return result
         instance = airfield_service.get_existing_zeppelin_instance(instance_id)
         if instance is None:  # the requested instance does not exist
-            return True
+            result.status = ApiResponseStatus.SUCCESS
+            return result
         options = instance['configuration']
         if options['usermanagement'] != 'oidc':  # another usermanagment is choosen
-            return True
-        if not AuthService.is_loggedin_user_authorized(options['users']) and UserService.get_user_name().upper() != instance['createdBy'].upper():
-            raise Exception(f'ERROR 401: The User {UserService.get_user_name()} is not allowed to request for the '
-                            f'instance {instance_id} created by {instance["createdBy"]}!')
+            result.status = ApiResponseStatus.SUCCESS
+            return result
+        if (not AuthService.is_loggedin_user_authorized(options['users'])) and UserService.get_user_name().upper() != instance['createdBy'].upper():
+            result.status = ApiResponseStatus.UNAUTHORIZED
+            result.error_message = f'The user {UserService.get_user_name()} is not allowed to request the instance {instance_id}!'
+            return result

@@ -2,6 +2,13 @@ import axios from 'axios';
 
 const BASE_PATH = 'api/zeppelin';
 
+function configureTensorflow(clonedConfig) {
+    if (clonedConfig.configuration.libraries[0].tensorflow){
+        delete clonedConfig.configuration.libraries[0].tensorflow;
+        clonedConfig.configuration.libraries[0].libraries.push('tensorflow');
+    }
+}
+
 export default {
     async getDefaultConfigurations() {
         const { data: result } = await axios.get(BASE_PATH + '/configurations');
@@ -10,16 +17,19 @@ export default {
 
     async createNewInstance(configuration) {
         const clonedConfig = JSON.parse(JSON.stringify(configuration));
-        if (clonedConfig.configuration.libraries[0].tensorflow){
-            delete clonedConfig.configuration.libraries[0].tensorflow;
-            clonedConfig.configuration.libraries[0].libraries.push('tensorflow');
-        }
+        configureTensorflow(clonedConfig);
         if (clonedConfig.created_at) {
             await axios.put(BASE_PATH + '/instance/' + clonedConfig.id, configuration);
         }
         else {
             await axios.post(BASE_PATH + '/instance', configuration);
         }
+    },
+
+    async commitInstance(configuration) {
+        const clonedConfig = JSON.parse(JSON.stringify(configuration));
+        configureTensorflow(clonedConfig);
+        await axios.put(BASE_PATH + '/commit/' + clonedConfig.id, configuration);
     },
     
     async getSecurityState() {
