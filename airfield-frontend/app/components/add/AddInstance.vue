@@ -84,6 +84,7 @@
                 try {
                     this.isLoading = true;
                     await this.$store.dispatch('loadDefaultConfigurations');
+                    await this.$store.dispatch('loadZeppelinGroups');
                 }
                 catch (error) {
                     console.error(error); // eslint-disable-line

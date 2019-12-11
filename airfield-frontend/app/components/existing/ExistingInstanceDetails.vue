@@ -1,11 +1,11 @@
 <template>
     <b-card v-if="item.status !== 'NOT_FOUND'">
-        <b-row class="mb-2">
+        <b-row class="mb-2" v-if="typeof item.createdBy !== 'undefined'">
             <b-col sm="3" class="text-sm-right"><b>Created by:</b></b-col>
             <b-col>{{ item.createdBy }}</b-col>
         </b-row>
 
-        <b-row class="mb-2">
+        <b-row class="mb-2" v-if="typeof item.created_at !== 'undefined'">
             <b-col sm="3" class="text-sm-right"><b>Created at:</b></b-col>
             <b-col>{{ toUTCString(item.created_at) }}</b-col>
         </b-row>
@@ -40,6 +40,11 @@
         <b-row class="mb-2">
             <b-col sm="3" class="text-sm-right"><b>Number of RAM in GB:</b></b-col>
             <b-col>{{ getNumberOfRAM() }}</b-col>
+        </b-row>
+        
+        <b-row class="mb-2" v-if="typeof item.configuration.group !== 'undefined'">
+            <b-col sm="3" class="text-sm-right"><b>Group of the instance:</b></b-col>
+            <b-col>{{ item.configuration.group }}</b-col>
         </b-row>
     </b-card>
 </template>

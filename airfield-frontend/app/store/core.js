@@ -15,7 +15,10 @@ export default {
         isNewInstanceSelected: state => state.selectedNewInstance.hasOwnProperty('template_id'),
         existingInstances: state => state.existingInstances,
         storedNotebooks: state => state.storedNotebooks,
-        deletedInstances: state => state.deletedInstances
+        deletedInstances: state => state.deletedInstances,
+        zeppelinGroups: state => state.zeppelinGroups,
+        oidcActivated: state => state.oidcActivated,
+        dcosGroupsActivated: state => state.dcosGroupsActivated
     },
 
     actions: {
@@ -32,6 +35,16 @@ export default {
                 instance.deleteAt = instance.deleteAt || '';
             }
             commit('SET_DEFAULT_CONFIGURATIONS', data);
+        },
+        
+        async loadZeppelinGroups({ commit }) {
+            const data = await Server.getZeppelinGroups().then(
+                response => {
+                    return response;
+                });
+            commit('SET_ZEPPELIN_GROUPS', data.groups);
+            commit('SET_OIDC_ACTIVATED', data.oidc_activated);
+            commit('SET_DCOS_GROUPS_ACTIVATED', data.dcos_groups_activated);
         },
 
         selectNewInstance({ commit }, instance) {
@@ -109,6 +122,18 @@ export default {
         
         SET_DELETED_INSTANCES(state, data){
             state.deletedInstances = data;
+        },
+
+        SET_ZEPPELIN_GROUPS(state, data){
+            state.zeppelinGroups = data;
+        },
+
+        SET_OIDC_ACTIVATED(state, data){
+            state.oidcActivated = data;
+        },
+
+        SET_DCOS_GROUPS_ACTIVATED(state, data){
+            state.dcosGroupsActivated = data;
         }
     }
 };

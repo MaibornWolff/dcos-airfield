@@ -41,6 +41,8 @@ TEMPLATE_ID_KEY = "template_id"
 PYTHON_PACKAGES_KEY = 'PYTHON_PACKAGES'
 R_PACKAGES_KEY = 'R_PACKAGES'
 
+GROUP_KEY = 'group'
+
 STATUS_KEY = "status"
 TIME_KEY = "time"
 RESOURCES_KEY = "resources"
@@ -70,7 +72,7 @@ class ZeppelinConfigurationBuilder(object):
         """
         Creates a valid Zeppelin instance configuration based on parameters specified in frontend.
 
-        :param deployment:  only needed if the instance is redeployed
+        :param deployment:  True if the instance is going to be deployed else False
         :param custom_configuration: the settings that are customizable in the frontend
         :param app_definition: The marathon app definition for the zeppelin instance
         :return: app definition for zeppelin instance and instance metadata for consul/etcd
@@ -79,11 +81,15 @@ class ZeppelinConfigurationBuilder(object):
             instance_id = custom_configuration[ID_KEY]
         except KeyError:
             instance_id = self._generate_instance_id()
-        app_id = instance_id
-        if config.MARATHON_APP_GROUP:
-            app_id = "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
-        instance_url = self.parse_url(instance_id)
         options = custom_configuration[CONFIG_KEY]
+        if config.MARATHON_APP_GROUP:
+            app_id = config.MARATHON_APP_GROUP
+            if GROUP_KEY in options and GROUP_KEY != '':
+                app_id = app_id + self.get_dcos_group_prefix(options[GROUP_KEY])
+            app_id = f'{app_id}/{instance_id}'
+        else:
+            app_id = instance_id
+        instance_url = self.parse_url(instance_id)
         # Add configuration options to app definition
         app_definition[ID_KEY] = app_id
         app_definition[LABEL_KEY][HOST_KEY] = instance_url
@@ -106,9 +112,10 @@ class ZeppelinConfigurationBuilder(object):
         if CREATED_BY_KEY not in custom_configuration or custom_configuration[CREATED_BY_KEY] == '':
             custom_configuration[CREATED_BY_KEY] = UserService.get_user_name()
 
-        # check for some options and add them if necessary
+        # check for some options and adds them if necessary
         if deployment:
-            if HISTORY_KEY not in custom_configuration:  # creates history
+            if HISTORY_KEY not in custom_configuration:
+                # creates history
                 custom_configuration[HISTORY_KEY] = self.create_history_list(
                     [InstanceRunningTypes.STOPPED, InstanceRunningTypes.RUNNING],
                     custom_configuration)
@@ -129,7 +136,7 @@ class ZeppelinConfigurationBuilder(object):
                     CONFIG_KEY: {key: options[key] for key in
                                  # this will copy most of the values of the CONFIG_KEY entry
                                  [CPUS_KEY, ENV_KEY, MEM_KEY, INSTANCES_KEY, USERS_KEY, USER_MANAGEMENT_KEY,
-                                  COSTS_OBJECT_KEY]},
+                                  COSTS_OBJECT_KEY, GROUP_KEY] if key in options},
                     URL_KEY: INSTANCE_URL_PREFIX + instance_url,
                     CREATED_AT_KEY: custom_configuration[CREATED_AT_KEY],
                     HISTORY_KEY: custom_configuration[HISTORY_KEY],
@@ -262,3 +269,10 @@ class ZeppelinConfigurationBuilder(object):
     def parse_url(instance_id: str) -> str:
         url = instance_id + config.BASE_HOST
         return url
+
+    @staticmethod
+    def get_dcos_group_prefix(group_name):
+        groups = config.DCOS_GROUPS
+        if group_name not in groups:
+            groups[group_name] = f'/{group_name}'
+        return groups[group_name]

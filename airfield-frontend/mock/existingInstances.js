@@ -113,22 +113,33 @@ module.exports = {
             }
         }
     },
-
-    updateOrAddInstance(instance) {
+    
+    getExistingInstanceIndex(instance) {
         for (let i = 0; i < instances.length; i++) {
             if (instances[i].id === instance.id) {
-                instance._showDetails = false;
-                instances[i] = instance;
-                if (!instances[i].comment_only) {
-                    instances[i].history.push(createHistoryObject(instances[i], 'STOPPED'));
-                    instances[i].history.push(createHistoryObject(instances[i], 'RUNNING'));
-                }
-                delete instances[i].comment_only;
-                return false;
+                return i;
             }
         }
-        this.add(instance);
-        return true;
+        return false;
+    },
+
+    updateOrAddInstance(instance) {
+        const index = this.getExistingInstanceIndex(instance);
+        if (index === false) {
+            instance.createdBy = 'Alwin'; // just for testing, the name is added in the backend
+            this.add(instance);
+            return true;
+        }
+        instance._showDetails = false;
+        instances[index] = instance;
+        instances[index].history.push(createHistoryObject(instances[index], 'STOPPED'));
+        instances[index].history.push(createHistoryObject(instances[index], 'RUNNING'));
+        return false;
+    },
+    
+    commitInstance(instance) {
+        const index = this.getExistingInstanceIndex(instance);
+        instances[index].comment = instance.comment;
     },
 
     get(type) {

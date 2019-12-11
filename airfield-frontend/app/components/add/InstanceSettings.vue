@@ -104,6 +104,15 @@
                     </b-row>
                 </b-container>
             </b-tab>
+
+            <b-tab title="Groups" v-if="!selectedNewInstance.created_at && dcosGroupsActivated && oidcActivated">
+                <label>Group</label>
+                <b-form-select v-model="selectedNewInstance.configuration.group" :options="zeppelinGroups" class="mb-3">
+                    <template v-slot:first>
+                        <option :value="undefined" disabled>-- Please select a group --</option>
+                    </template>
+                </b-form-select>
+            </b-tab>
         </b-tabs>
 
         <br>
@@ -145,12 +154,13 @@
                     { text: 'Manual', value: 'manual' },
                     { text: 'Random', value: 'random' },
                     { text: 'OIDC', value: 'oidc' }
-                ]
+                ],
+                
             };
         },
 
         computed: {
-            ...mapGetters(['selectedNewInstance']),
+            ...mapGetters(['selectedNewInstance', 'zeppelinGroups', 'oidcActivated', 'dcosGroupsActivated']),
             checkShowAdd() {
                 const users = this.selectedNewInstance.configuration.users;
                 if (users.length === 0) {
@@ -166,6 +176,7 @@
         
         methods: {
             addRow() {
+                console.log(this.groups);
                 this.selectedNewInstance.configuration.users.push({ username: '', password: '' });
             },
             deleteRow(user) {

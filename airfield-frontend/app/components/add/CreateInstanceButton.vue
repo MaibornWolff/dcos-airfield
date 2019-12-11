@@ -23,7 +23,7 @@
         },
 
         computed: {
-            ...mapGetters(['selectedNewInstance']),
+            ...mapGetters(['selectedNewInstance', 'dcosGroupsActivated', 'oidcActivated']),
             buttonIcon() {
                 if (this.isLoading) {
                     return 'spinner';
@@ -34,6 +34,10 @@
         
         methods: {
             async createNewInstance() {
+                if (!this.selectedNewInstance.configuration.group && this.dcosGroupsActivated && this.oidcActivated){
+                    this.$eventBus.$emit('showErrorToast', 'No group is selected! Please select a group to deploy the instance!');
+                    return;
+                }
                 try {
                     this.isLoading = true;
                     await Server.createNewInstance(this.selectedNewInstance);

@@ -16,6 +16,7 @@ from airfield.utility import ApiResponse, ApiResponseStatus
 from .adapters import MarathonAdapter, EtcdAdapter, ConsulAdapter, InstanceState, ZeppelinAdapter, ZeppelinException
 from airfield.utility import TechnicalException
 from .notebook_transfer_thread import NotebookTransferThread
+from app import oidc
 
 
 DELETE_AT_KEY = 'deleteAt'
@@ -25,6 +26,8 @@ ID_KEY = 'id'
 CONFIG_KEY = 'configuration'
 CONFIGURATION_ID_KEY = 'id'
 COSTS_OBJECT_KEY = 'costsAsObject'
+
+GROUP_KEY = 'group'
 
 
 
@@ -46,6 +49,20 @@ class AirfieldService(object):
         self.configuration_builder = ZeppelinConfigurationBuilder()
         self._setup_metrics()
         self._start_periodic_tasks()
+
+    def get_zeppelin_groups(self) -> ApiResponse:
+        result = ApiResponse()
+        groups = oidc.user_getfield('user_groups')
+        for i in range(len(groups)):
+            if groups[i].startswith('/'):
+                groups[i] = groups[i][1:]
+        result.status = ApiResponseStatus.SUCCESS
+        result.data = {
+            'groups': groups,
+            'oidc_activated': config.OIDC_ACTIVATED,
+            'dcos_groups_activated': config.DCOS_GROUPS_ACTIVATED
+        }
+        return result
 
     def get_instance_ip_address_and_port(self, instance_id):
         instance_id = self._marathon_app_id(instance_id)  # parse instance id to special format
@@ -611,6 +628,10 @@ class AirfieldService(object):
 
     def _marathon_app_id(self, instance_id: str):
         if config.MARATHON_APP_GROUP:
-            return "%s/%s" % (config.MARATHON_APP_GROUP, instance_id)
+            instance = self.get_existing_zeppelin_instance(instance_id)
+            app_id = config.MARATHON_APP_GROUP + '/'
+            if GROUP_KEY in instance[CONFIG_KEY] and GROUP_KEY != '':
+                app_id = app_id + instance[CONFIG_KEY][GROUP_KEY] + '/'
+            return app_id + instance_id
         else:
             return instance_id

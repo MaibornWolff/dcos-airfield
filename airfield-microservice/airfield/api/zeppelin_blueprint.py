@@ -15,7 +15,7 @@ from airfield.core import airfield_service, UserService, AuthService
 ZeppelinBlueprint = Blueprint('zeppelin', __name__)
 airfield_requests_metrics = Counter('airfield_requests_total', 'HTTP Requests', ['endpoint', 'method'])
 
-# todo: fix authorisation
+
 @ZeppelinBlueprint.route('/instance/<instance_id>/state', methods=['GET'])  # get states
 @UserService.login_if_oidc
 def get_zeppelin_server_state(instance_id):
@@ -30,6 +30,14 @@ def get_zeppelin_server_state(instance_id):
 def get_zeppelin_default_configurations():
     response = airfield_service.get_zeppelin_default_configurations()
     airfield_requests_metrics.labels(endpoint='/api/zeppelin/configurations/', method="GET").inc()
+    return response.to_json(), response.status.value
+
+
+@ZeppelinBlueprint.route('/groups', methods=['GET'])  # get the zeppelin groups for the DCOS cluster
+@UserService.login_if_oidc
+def get_zeppelin_groups():
+    response = airfield_service.get_zeppelin_groups()
+    airfield_requests_metrics.labels(endpoint='/api/zeppelin/groups/', method="GET").inc()
     return response.to_json(), response.status.value
 
 

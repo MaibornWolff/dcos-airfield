@@ -11,11 +11,21 @@ const DEFAULT_TIMEOUT = 1000;
 
 
 
-app.get(BASE_PATH + '/configurations', function(req, res){
+app.get(BASE_PATH + '/configurations', function(req, res){ // get default configurations
     setTimeout(() => res.json({
         status: 200,
         data: {
             configurations: defaultConfigurations
+        } }), DEFAULT_TIMEOUT);
+});
+
+app.get(BASE_PATH + '/groups', function(req, res){ // get instance groups
+    setTimeout(() => res.json({
+        status: 200,
+        data: {
+            groups: ['testing', 'development', 'production', 'administration'],
+            oidc_activated: true,  // eslint-disable-line
+            dcos_groups_activated: true  // eslint-disable-line
         } }), DEFAULT_TIMEOUT);
 });
 
@@ -67,7 +77,7 @@ app.post(BASE_PATH + '/instance/*/action/*', function(req, res){ // actions
     setTimeout(() => res.send(''), DEFAULT_TIMEOUT);
 });
 
-app.delete(BASE_PATH + '/instance/*', function(req, res) { // delete action
+app.delete(BASE_PATH + '/instance/*', function(req, res) { // action: delete
     const pathParts = req.path.split('/');
     const id = pathParts.pop();
     existingInstances.action('delete', id);
@@ -79,7 +89,12 @@ app.put(BASE_PATH + '/instance/*', function(req, res){ // redeploy
     setTimeout(() => res.send(''), DEFAULT_TIMEOUT);
 });
 
-app.get(BASE_PATH + '/instance/*/state', function(req, res){
+app.put(BASE_PATH + '/instance/*', function(req, res){ // commit
+    existingInstances.commitInstance(req.body);
+    setTimeout(() => res.send(''), DEFAULT_TIMEOUT);
+});
+
+app.get(BASE_PATH + '/instance/*/state', function(req, res){ // get instance status
     const pathParts = req.path.split('/');
     pathParts.pop();
     const id = pathParts.pop();

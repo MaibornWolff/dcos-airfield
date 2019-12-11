@@ -15,6 +15,11 @@ export default {
         return result.data.configurations;
     },
 
+    async getZeppelinGroups() {
+        const { data: result } = await axios.get(BASE_PATH + '/groups');
+        return result.data;
+    },
+
     async createNewInstance(configuration) {
         const clonedConfig = JSON.parse(JSON.stringify(configuration));
         configureTensorflow(clonedConfig);
