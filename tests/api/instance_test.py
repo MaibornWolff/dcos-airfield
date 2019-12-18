@@ -1,0 +1,110 @@
+import unittest
+from unittest import mock
+from airfield.util import dependency_injection as di
+from airfield.adapter.marathon import MarathonAdapter, InstanceState
+from airfield.adapter.kv import KVAdapter
+from airfield.util import logging
+from tests.mocks.marathon_adapter import MarathonAdapterMock
+from tests.mocks.kv import InMemoryKVAdapter
+
+
+class InstanceApiTest(unittest.TestCase):
+    def setUp(self):
+        logging.silence()
+        di.test_setup_clear_registry()
+        self.marathon_adapter_mock = MarathonAdapterMock()
+        self.kv_mock = InMemoryKVAdapter()
+        di.register(MarathonAdapter, self.marathon_adapter_mock)
+        di.register(KVAdapter, self.kv_mock)
+        from airfield.app import create_app
+        self.app = create_app()
+        self.app.testing = True
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        di.test_setup_clear_registry()
+    
+    def test_get_instances(self):
+        response = self.client.get("/api/instance")
+        data = response.get_json()
+        self.assertEqual(data, [])
+
+    def test_create_instance(self):
+        self.marathon_adapter_mock.value_get_instance_status(InstanceState.HEALTHY)
+        configuration = dict(configuration=dict(comment="foobar", notebook=dict(cores=4)))
+        response = self.client.post("/api/instance", json=configuration)
+        data = response.get_json()
+        self.assertTrue("instance_id" in data)
+        instance_id = data["instance_id"]
+        app_definition = self.marathon_adapter_mock.value_deploy_instance()
+        self.assertEqual(app_definition["cpus"], 4)
+        response = self.client.get("/api/instance")
+        data = response.get_json()
+        self.assertTrue(len(data) == 1)
+        instance = data[0]
+        self.assertEqual(instance_id, instance["instance_id"])
+        self.assertEqual("foobar", instance["details"]["comment"])
+
+    def test_get_instance_credentials(self):
+        configuration = dict(configuration=dict(usermanagement=dict(enabled=True, users=dict(admin="notsecure", random=None))))
+        response = self.client.post("/api/instance", json=configuration)
+        data = response.get_json()
+        self.assertTrue("instance_id" in data)
+        instance_id = data["instance_id"]
+        response = self.client.get("/api/instance/{}/credentials".format(instance_id))
+        credentials = response.get_json()
+        self.assertTrue("admin" in credentials)
+        self.assertEqual("notsecure", credentials["admin"])
+        self.assertTrue("random" in credentials)
+        self.assertIsNotNone(credentials["random"])
+
+    def test_delete_instance(self):
+        self.marathon_adapter_mock.value_get_instance_status(InstanceState.NOT_FOUND)
+        configuration = dict(configuration=dict())
+        response = self.client.post("/api/instance", json=configuration)
+        data = response.get_json()
+        self.assertTrue("instance_id" in data)
+        instance_id = data["instance_id"]
+        response = self.client.delete("/api/instance/{}".format(instance_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get("/api/instance").get_json(), [])
+        data = self.client.get("/api/instance?deleted=true").get_json()
+        self.assertTrue(len(data) == 1)
+        instance = data[0]
+        self.assertEqual(instance_id, instance["instance_id"])
+
+    def test_update_instance(self):
+        configuration = dict(configuration=dict())
+        data = self.client.post("/api/instance", json=configuration).get_json()
+        self.assertTrue("instance_id" in data)
+        instance_id = data["instance_id"]
+        configuration["configuration"]["comment"] = "foobar"
+        configuration["configuration"]["notebook"] = dict(cores=4)
+        response = self.client.put("/api/instance/{}".format(instance_id), json=configuration)
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get("/api/instance/{}/configuration".format(instance_id)).get_json()
+        self.assertEqual(response["comment"], "foobar")
+        self.assertEqual(response["notebook"]["cores"], 4)
+        app_definition = self.marathon_adapter_mock.value_deploy_instance()
+        self.assertEqual(app_definition["cpus"], 4)
+
+    def test_restart_instance(self):
+        configuration = dict(configuration=dict())
+        instance_id = self.client.post("/api/instance", json=configuration).get_json()["instance_id"]
+        response = self.client.post("/api/instance/{}/restart".format(instance_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(instance_id in self.marathon_adapter_mock.value_restart_instance())
+
+    def test_stop_instance(self):
+        configuration = dict(configuration=dict())
+        instance_id = self.client.post("/api/instance", json=configuration).get_json()["instance_id"]
+        response = self.client.post("/api/instance/{}/stop".format(instance_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(instance_id in self.marathon_adapter_mock.value_stop_instance())
+
+    def test_start_instance(self):
+        configuration = dict(configuration=dict())
+        instance_id = self.client.post("/api/instance", json=configuration).get_json()["instance_id"]
+        response = self.client.post("/api/instance/{}/start".format(instance_id))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(instance_id in self.marathon_adapter_mock.value_start_instance())

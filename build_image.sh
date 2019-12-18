@@ -5,7 +5,7 @@ DOCKER_TAG=${DOCKER_TAG:-dev}
 DOCKER_IMAGE=$DOCKER_REGISTRY/airfield:$DOCKER_TAG
 
 if [ -z $NO_BUILD_FRONTEND ]; then
-	cd airfield-frontend
+	cd frontend
 	npm install
 	npm run build
 	cd ..

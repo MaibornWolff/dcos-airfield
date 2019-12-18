@@ -272,3 +272,5 @@ options.json
 airfield-microservice/airfield/bin/
 airfield-microservice/airfield/include/
 airfield-microservice/airfield/resources/keycloak.json
+
+.vscode

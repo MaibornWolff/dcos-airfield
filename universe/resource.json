@@ -3,7 +3,9 @@
   "assets": {
     "container": {
       "docker": {
-        "airfield": "maibornwolff/airfield:0.2.0"
+        "airfield": "maibornwolff/airfield:dev",
+        "zeppelin": "maibornwolff/zeppelin:1.1-0.8.1-all-2.4.0",
+        "spark": "mesosphere/spark:2.7.0-2.4.0-hadoop-2.7"
       }
     }
   },

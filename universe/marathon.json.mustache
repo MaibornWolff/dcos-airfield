@@ -50,8 +50,10 @@
       "secret": "serviceCredential"
     },
     {{/service.service_account_secret}}
+    "ZEPPELIN_DOCKER_IMAGE": "{{resource.assets.container.docker.zeppelin}}",
+    "SPARK_MESOS_EXECUTOR_DOCKER_IMAGE": "{{resource.assets.container.docker.spark}}",
     "PACKAGE_NAME": "airfield",
-    "PACKAGE_VERSION": "0.2.0",
+    "PACKAGE_VERSION": "0.3.0-beta1",
     "PACKAGE_BUILD_TIME_EPOCH_MS": "%(time_epoche_ms)s",
     "PACKAGE_BUILD_TIME_STR": "%(time_str)s",
     {{#airfield.dcos_base_url}}

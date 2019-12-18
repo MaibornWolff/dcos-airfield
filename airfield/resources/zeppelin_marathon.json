@@ -1,0 +1,38 @@
+{
+  "instances": 1,
+  "env": {
+    "SPARK_MESOS_EXECUTOR_DOCKER_IMAGE": "mesosphere/spark:2.3.1-2.2.1-2-hadoop-2.6",
+    "ZEPPELIN_INTERPRETER_OUTPUT_LIMIT": "2147483646"
+  },
+  "container": {
+    "type": "MESOS",
+    "docker": {
+      "image": "maibornwolff/zeppelin:1.0-0.8.0-all-2.2.1",
+      "forcePullImage": false
+    }
+  },
+  "networks": [
+    {
+      "mode": "host"
+    }
+  ],
+  "upgradeStrategy": {
+    "maximumOverCapacity": 0,
+    "minimumHealthCapacity": 0
+  },
+  "labels": {
+  },
+  "healthChecks": [
+    {
+      "protocol": "TCP",
+      "portIndex": 0,
+      "gracePeriodSeconds": 300,
+      "intervalSeconds": 30,
+      "timeoutSeconds": 15,
+      "maxConsecutiveFailures": 5
+    }
+  ],
+  "portDefinitions": [
+    {"port": 0}
+  ]
+}

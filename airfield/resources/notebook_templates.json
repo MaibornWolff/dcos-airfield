@@ -1,0 +1,23 @@
+[
+    {
+        "id": "dummy_template",
+        "name": "Dummy template",
+        "type": "zeppelin",
+        "description": "Dummy template for zeppelin to demonstrate the template system",
+        "notebooks": [
+            {
+                "name": "note template from airfield",
+                "paragraphs": [
+                    {
+                        "title": "paragraph title1",
+                        "text": "paragraph text1"
+                    },
+                    {
+                        "title": "paragraph title2",
+                        "text": "paragraph text2"
+                    }
+                ]
+            }
+        ]
+    }
+]

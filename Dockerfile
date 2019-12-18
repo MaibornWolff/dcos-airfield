@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.7
 
 ENV FLASK_APP 'app'
 ENV LC_ALL 'C.UTF-8'
@@ -6,14 +6,15 @@ ENV LANG 'C.UTF-8'
 
 # copy codebase
 ENV BASEDIR "/dcos-airfield"
-RUN mkdir -p $BASEDIR/airfield-frontend
-COPY airfield-microservice/requirements.txt $BASEDIR/
+RUN mkdir -p $BASEDIR/frontend
+COPY requirements.txt $BASEDIR/
 RUN pip install -r $BASEDIR/requirements.txt
-COPY airfield-frontend/dist $BASEDIR/airfield-frontend/dist
-COPY airfield-microservice $BASEDIR/airfield-microservice
+COPY frontend/dist $BASEDIR/frontend/dist
+COPY run.py $BASEDIR/run.py
+COPY airfield $BASEDIR/airfield
 
 # start backend
-WORKDIR $BASEDIR/airfield-microservice/
+WORKDIR $BASEDIR/
 
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "30", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "app:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "30", "-k", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "run:create_app()"]
