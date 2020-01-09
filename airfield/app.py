@@ -11,7 +11,7 @@ from .util.logging import logger
 
 def create_app():
     logger.info('Starting Flask application...')
-    app = FlaskAPI(__name__, static_folder=base.APP_STATIC_FOLDER, template_folder=base.APP_STATIC_FOLDER, instance_relative_config=True)
+    app = FlaskAPI(__name__, static_url_path="", static_folder=base.APP_STATIC_FOLDER, template_folder=base.APP_STATIC_FOLDER, instance_relative_config=True)
     app.config.from_object(config)
     app.config.from_object(base)
     if config.OIDC_ACTIVATED:

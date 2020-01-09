@@ -9,7 +9,7 @@ from ..util.logging import logger
 from . import oidc, auth
 
 
-app_blueprint = Blueprint('app', __name__, static_folder=APP_STATIC_FOLDER, template_folder=APP_STATIC_FOLDER)
+app_blueprint = Blueprint('app', __name__)
 
 
 def register_blueprint(app):
