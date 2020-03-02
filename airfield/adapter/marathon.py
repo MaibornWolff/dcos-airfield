@@ -23,6 +23,7 @@ class InstanceState(Enum):
     STOPPED = 5
     UNAUTHORIZED = 6
     CONNECTION_ERROR = 7
+    DELETED = 8
 
 
 class MarathonAdapter(object):

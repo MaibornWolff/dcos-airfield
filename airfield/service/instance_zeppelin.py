@@ -39,8 +39,8 @@ def _generate_marathon_configuration(app_id, configuration):
     app_definition["mem"] = int(configuration["notebook"]["memory"])
 
     app_definition["env"]["SPARK_EXECUTOR_MEMORY"] = "{}m".format(configuration["spark"]["executor_memory"])
-    app_definition["env"]["SPARK_EXECUTOR_CORES"] = configuration["spark"]["executor_cores"]
-    app_definition["env"]["SPARK_CORES_MAX"] = configuration["spark"]["cores_max"]
+    app_definition["env"]["SPARK_EXECUTOR_CORES"] = str(configuration["spark"]["executor_cores"])
+    app_definition["env"]["SPARK_CORES_MAX"] = str(configuration["spark"]["cores_max"])
     app_definition["env"]["PYSPARK_PYTHON"] = configuration["spark"]["python_version"]
 
     if config.ZEPPELIN_DOCKER_IMAGE:

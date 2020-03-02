@@ -2,7 +2,8 @@
     <b-navbar type="dark" variant="primary" toggleable="md">
         <b-navbar-brand>
             <b-link to="/">
-                <img src="../assets/images/airfield_logo.png" alt="Airfield" class="airfieldLogo">
+                <!-- workaround so the image is loaded correctly -->
+                <b-img :src="image" alt="Airfield" class="airfieldLogo"></b-img>
                 <span class="title">Airfield</span>
             </b-link>
         </b-navbar-brand>
@@ -13,10 +14,15 @@
 
 <script>
     import Auth from '@/components/Auth';
+    import image from '@/assets/images/airfield_logo.png';
     
     export default {
         components: {
             Auth
+        },
+        
+        data(){
+            return { image };
         }
     };
 </script>

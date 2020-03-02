@@ -1,0 +1,99 @@
+/* eslint-disable camelcase */
+module.exports = [
+    {
+        template_id: 1,
+        title: 'Small',
+        tags: ['Small', 'No Libs', 'Sample Templates'],
+        icon: 'small',
+        configuration: {
+            type: 'zeppelin',
+            notebook: {
+                cores: 2,
+                memory: 8192
+            },
+            spark: {
+                python_version: 'python3',
+                executor_memory: 1024,
+                executor_cores: 1,
+                cores_max: 2
+            },
+            admin: {
+                group: null,
+                admins: []
+            },
+            usermanagement: {
+                enabled: false,
+                password: null,
+                users: {}
+            },
+            libraries: {
+                python: [],
+                r: []
+            }
+        }
+    },
+    {
+        template_id: 2,
+        title: 'Medium',
+        tags: ['Medium', 'No Libs'],
+        icon: 'medium',
+        configuration: {
+            type: 'zeppelin',
+            notebook: {
+                cores: 4,
+                memory: 32768
+            },
+            spark: {
+                python_version: 'python3',
+                executor_memory: 8192,
+                executor_cores: 1,
+                cores_max: 4
+            },
+            admin: {
+                group: null,
+                admins: []
+            },
+            usermanagement: {
+                enabled: false,
+                password: null,
+                users: {}
+            },
+            libraries: {
+                python: [],
+                r: []
+            }
+        }
+    },
+    {
+        template_id: 3,
+        title: 'Large',
+        tags: ['Large', 'No Libs'],
+        icon: 'large',
+        configuration: {
+            type: 'zeppelin',
+            notebook: {
+                cores: 4,
+                memory: 32768
+            },
+            spark: {
+                python_version: 'python3',
+                executor_memory: 16384,
+                executor_cores: 1,
+                cores_max: 8
+            },
+            admin: {
+                group: null,
+                admins: []
+            },
+            usermanagement: {
+                enabled: false,
+                password: null,
+                users: {}
+            },
+            libraries: {
+                python: [],
+                r: []
+            }
+        }
+    }
+];

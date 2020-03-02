@@ -43,7 +43,7 @@ class EtcdAdapter(object):
 
     def get_keys(self, key):
         try:
-            for child in self._client.read(self._build_key(key)).children:
+            for child in self._client.read(self._build_key(key), recursive=True).children:
                 yield child.key, (json.loads(child.value) if child.value else None)
         except etcd.EtcdKeyNotFound:
             return

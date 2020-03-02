@@ -1,5 +1,6 @@
 """API for instance management"""
 
+import json
 from flask import Blueprint, request
 from .auth import require_login, get_user_name
 from ..service.instance import InstanceService
@@ -8,7 +9,7 @@ from ..settings import config
 from ..util import metrics, dependency_injection as di
 from ..util.logging import logger
 from ..util.serialization import clean_input_string
-
+from ..util.exception import ConfigurationException
 
 instance_blueprint = Blueprint('instance', __name__)
 
@@ -19,7 +20,9 @@ def register_blueprint(app):
 
 def instrumented_route(endpoint, method):
     def wrapped(f):
-        return metrics.api_endpoint(endpoint, method)(instance_blueprint.route(endpoint, endpoint="{}-{}".format(endpoint, method), methods=[method])(require_login(f)))
+        return metrics.api_endpoint(endpoint, method)(
+            instance_blueprint.route(endpoint, endpoint="{}-{}".format(endpoint, method), methods=[method])(
+                require_login(f)))
     return wrapped
 
 
@@ -30,9 +33,30 @@ def instance_admin_required(func):
             user_name = get_user_name()
             admins = di.get(InstanceService).get_instance_admins(instance_id)
             if admins and user_name not in admins:
-                return dict(msg="User not authorized for instance"), 403
+                return dict(msg="User not authorized for instance."), 403
         return func(instance_id, *args)
+
     return wrapper
+
+
+@instrumented_route('/api/instance_prices', 'GET')
+def get_prices():
+    """
+    Returns the costs for a single core of an instance and for a single GB RAM for an instance.
+    """
+    return {
+        'cost_tracking_enabled': config.COST_TRACKING_ENABLED,
+        'cost_currency': config.COST_CURRENCY,
+        'cost_core_per_minute': config.COST_CORE_PER_MINUTE,
+        'cost_gb_per_minute': config.COST_GB_PER_MINUTE
+    }
+
+
+@instrumented_route('/api/instance_costs', 'GET')
+def calculate_costs():
+    """Returns the costs per hour for an instance configuration"""
+    data = json.loads(request.args.get("configuration"))
+    return di.get(InstanceService).calculate_costs_per_hour(data)
 
 
 @instrumented_route('/api/instance_configurations', 'GET')
@@ -48,6 +72,13 @@ def get_instances():
     return di.get(InstanceService).get_instances(deleted=show_deleted)
 
 
+@instrumented_route('/api/instance/<instance_id>/details', 'GET')
+def get_instance(instance_id):
+    """Returns the details of a single instance"""
+    show_deleted = request.args.get("deleted", "false").lower() == "true"
+    return di.get(InstanceService).get_instance(instance_id=instance_id, deleted=show_deleted)
+
+
 @instrumented_route('/api/instance', 'POST')
 def create_instance():
     data = request.get_json()
@@ -55,10 +86,13 @@ def create_instance():
     username = get_user_name()
     instance_configuration = data["configuration"]
     notebook_template = data.get("notebook_template")
-    instance_id = di.get(InstanceService).create_instance(instance_configuration, username)
-    if notebook_template:
-        di.get(NotebookService).import_notebook_template(instance_id, notebook_template)
-    return dict(instance_id=instance_id)
+    try:
+        instance_id = di.get(InstanceService).create_instance(instance_configuration, username)
+        if notebook_template:
+            di.get(NotebookService).import_notebook_template(instance_id, notebook_template)
+        return dict(instance_id=instance_id), 200
+    except ConfigurationException as e:
+        return dict(msg=e.error), 409
 
 
 @instrumented_route('/api/instance/<instance_id>/state', 'GET')
@@ -94,19 +128,19 @@ def update_instance(instance_id):
 @instrumented_route('/api/instance/<instance_id>/restart', 'POST')
 @instance_admin_required
 def restart_instance(instance_id):
-    di.get(InstanceService).restart_instance(instance_id)
-    return dict(instance_id=instance_id, status="restarted"), 200
+    status = di.get(InstanceService).restart_instance(instance_id)
+    return dict(instance_id=instance_id, status=status), 200
 
 
 @instrumented_route('/api/instance/<instance_id>/start', 'POST')
 @instance_admin_required
 def start_instance(instance_id):
-    di.get(InstanceService).start_instance(instance_id)
-    return dict(instance_id=instance_id, status="started"), 200
+    status = di.get(InstanceService).start_instance(instance_id)
+    return dict(instance_id=instance_id, status=status), 200
 
 
 @instrumented_route('/api/instance/<instance_id>/stop', 'POST')
 @instance_admin_required
 def stop_instance(instance_id):
-    di.get(InstanceService).stop_instance(instance_id)
-    return dict(instance_id=instance_id, status="stopped"), 200
+    status = di.get(InstanceService).stop_instance(instance_id)
+    return dict(instance_id=instance_id, status=status), 200

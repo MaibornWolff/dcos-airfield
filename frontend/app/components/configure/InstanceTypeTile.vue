@@ -9,7 +9,8 @@
             <b-badge
                 v-for="(tag, index) in instance.tags" :key="index"
                 variant="primary"
-                class="m-1">
+                class="m-1"
+            >
                 {{ tag }}
             </b-badge>
         </div>
@@ -51,7 +52,7 @@
 
         methods: {
             onInstanceSelected() {
-                this.$store.dispatch('selectNewInstance', this.instance);
+                this.$store.dispatch('selectNewInstance', this.instance.configuration);
             }
         }
     };

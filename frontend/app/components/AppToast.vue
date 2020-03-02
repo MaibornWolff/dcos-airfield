@@ -3,7 +3,8 @@
         :show="show"
         :variant="variant"
         dismissible
-        @dismissed="dismiss">
+        @dismissed="dismiss"
+    >
         {{ message }}
     </b-alert>
 </template>

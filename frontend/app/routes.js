@@ -2,19 +2,18 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 Vue.use(VueRouter);
 
-import AddInstance from '@/components/add/AddInstance';
-import ExistingInstances from '@/components/existing/ExistingInstances';
-import RedeployInstance from '@/components/add/RedeployInstance';
+import Instances from '@/components/instances/Instances';
+import ConfigureInstance from '@/components/configure/ConfigureInstance';
 
 export default new VueRouter({
     routes: [{
         path: '/',
-        component: ExistingInstances
+        component: Instances
     }, {
         path: '/add',
-        component: AddInstance
+        component: ConfigureInstance
     }, {
         path: '/redeploy/:instance',
-        component: RedeployInstance
+        component: ConfigureInstance
     }]
 });

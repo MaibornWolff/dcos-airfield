@@ -1,4 +1,4 @@
-from ..settings.config import OIDC_ACTIVATED, DCOS_GROUPS_ENABLED
+from ..settings.config import OIDC_ACTIVATED, DCOS_GROUPS_ENABLED, DCOS_GROUPS_MAPPING
 from . import oidc
 
 
@@ -21,14 +21,32 @@ def _user_loggedin():
     return OIDC_ACTIVATED and oidc.user_loggedin
 
 
-def user_groups():
+def get_user_groups():
+    groups = list()
     if OIDC_ACTIVATED:
-        groups = oidc.user_getfield('user_groups')
-        for group in groups:
-            if group.startswith('/'):
-                group = group[1:]
+        groups = oidc.user_getfield('user_groups') or list()
+        groups = list(map(lambda g: g[1:] if g.startswith('/') else g, groups))
+    return groups
+
+
+def get_airfield_groups():
+    return list(DCOS_GROUPS_MAPPING.keys())
+
+
+def get_available_groups():
+    available_groups = list()
+    if OIDC_ACTIVATED:
+        groups = get_user_groups()
+        for group in get_airfield_groups():
+            if group in groups:
+                available_groups.append(group)
+    return available_groups
+
+
+def get_dcos_settings():
+    if OIDC_ACTIVATED:
         return {
-            'groups': groups,
+            'groups': get_available_groups(),
             'oidc_activated': OIDC_ACTIVATED,
             'dcos_groups_activated': DCOS_GROUPS_ENABLED
         }

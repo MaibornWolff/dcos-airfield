@@ -10,8 +10,9 @@ class InMemoryKVAdapter:
 
     def get_keys(self, key):
         root, key = self._navigate(key)
-        for sub_key, sub_value in root.get(key, dict()).items():
-            yield sub_key, sub_value
+        for sub_key in list(root.keys()):
+            if sub_key.startswith(key):
+                yield sub_key, root.get(sub_key)
 
     def put_key(self, key, value):
         root, key = self._navigate(key)
@@ -19,15 +20,12 @@ class InMemoryKVAdapter:
 
     def delete_key(self, key, recursive=False):
         root, key = self._navigate(key)
-        root.pop(key, None)
+        for sub_key in list(root.keys()):
+            if sub_key.startswith(key):
+                root.pop(sub_key)
 
     def _navigate(self, key):
         root = self._data
-        parts = key.split("/")
-        for part in parts[:-1]:
-            if part not in root:
-                root[part] = dict()
-            root = root[part]
-        return root, parts[-1]
+        return root, key
 
 

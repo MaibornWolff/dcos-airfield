@@ -4,6 +4,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
+    mode: 'development',
     entry: {
         app: './app/main.js'
     },
@@ -32,11 +33,6 @@ module.exports = {
     },
     devtool: '#source-map',
     plugins: [
-        new webpack.DefinePlugin({
-            'process.env': {
-                NODE_ENV: '"development"'
-            }
-        }),
         new HtmlWebpackPlugin({
             filename: 'index.html',
             template: './app/index.html',

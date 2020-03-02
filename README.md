@@ -75,7 +75,6 @@ Wait for it to finish installing, then access airfield via the vhost you provide
 We provide a [marathon app definition](marathon-deployment.json) for easy deployment.
 
 The following settings need to be specified (see `TODO`s in the app definition):
-* `AIRFIELD_BASE_HOST`: Base DNS name to use for zeppelin instances (make sure its wildcard entry points towards your loadbalancer). Example: If you set it to `.zeppelin.mycorp` a zeppelin instance will be reachable via `<randomname>.zeppelin.mycorp`.
 * Either `AIRFIELD_CONSUL_ENDPOINT`: HTTP v1-Endpoint of your consul instance (for example `http://consul.marathon.l4lb.thisdcos.directory:8500/v1`)
 * or `AIRFIELD_ETCD_ENDPOINT`: `host:port` of your etcd instance (for example `etcd.marathon.l4lb.thisdcos.directory:2379`).
 * If running DC/OS EE: `DCOS_SERVICE_ACCOUNT_CREDENTIAL`: authorize Marathon access with service account. Change if you used a different secret.
@@ -108,12 +107,12 @@ Click on the 'Add Instance' button in the main screen to reach the screen depict
 
 ![Airfield New Instance Screen](img/airfield_new.png)
 
-Simply select the desired instance type to load its default configuration. You can edit general settings, the spark configuration and specify additional packages to be installed.
+Simply select the desired instance type to load its default configuration. You can edit general settings, the spark configuration, the administrative setting and specify additional packages to be installed. You are also able to view the costs per hour for the instance.
 ### Interact with a running Zeppelin Instance
 ![Airfield Main Screen](img/airfield_base.png)
 
-Airfield lists all existing instances on the main screen. Besides being able to start, stop, restart or delete existing instances, the URL to the instance is also shown. Even though the instance will be
-recreated during most of the operations, notes will persist thanks to automatic import/export through Airfield.
+Airfield lists all existing and deleted instances on the main screen. Besides being able to start, stop, restart or delete existing instances, the proxy URL to the instance is also shown. Even though the instance will be
+recreated during most of the operations, notes will persist thanks to automatic import/export through Airfield. 
 
 ## Further Development
 ### Development Environment with docker-compose
@@ -129,9 +128,7 @@ You need python >= 3.6 and an installed and configured dcos-cli (airfield uses t
 docker run -d --rm --name=dev-consul -e CONSUL_BIND_INTERFACE=lo --net=host consul
 
 # build frontend (at least once)
-cd airfield-frontend && npm i && npm run build && cd ..
-
-cd airfield-microservice
+cd frontend && npm i && npm run build && cd ..
 
 # Optional: use virtualenv
 virtualenv airfield --python=/usr/bin/python3
@@ -146,17 +143,18 @@ export FLASK_ENV=development
 
 # Set additional environment variables - see config.py
 # Run locally for development
-AIRFIELD_CONSUL_ENDPOINT=http://localhost:8500/v1 AIRFIELD_BASE_HOST=example.com flask run
+export AIRFIELD_CONSUL_ENDPOINT=http://localhost:8500/v1/
+python run.py 
 ```
 The Application will start on port 5000.
 
 ### Local Frontend
 Install the latest version of node.js.
 ```bash
-cd airfield-frontend
+cd frontend
 
 # Install dependencies
-npm i
+npm install
 
 # Run locally for development with mock server
 npm run dev

@@ -10,6 +10,7 @@ from ..configuration.service import ConfigurationService
 from ..util import dependency_injection as di
 from ..util import metrics
 from ..util.logging import logger
+from ..util.exception import ConflictError
 
 
 class NotebookService:
@@ -32,14 +33,17 @@ class NotebookService:
 
     @metrics.instrument
     def get_instance_notebooks(self, instance_id):
-        return self._zeppelin_notebook_service.get_instance_notebooks(instance_id)
+        return dict(notebooks=self._zeppelin_notebook_service.get_instance_notebooks(instance_id))
 
     @metrics.instrument
-    def export_notebook(self, instance_id, notebook_name, username):
-        name, notebook_data = self._zeppelin_notebook_service.export_notebook(instance_id, notebook_name)
-        notebook_id = self._notebook_store.find_notebook("zeppelin", name)
+    def export_notebook(self, instance_id, notebook_name, username, force):
+        notebook_id = self._notebook_store.find_notebook("zeppelin", notebook_name)
         if not notebook_id:
             notebook_id = _gen_notebook_id()
+        else:
+            if not force:
+                raise ConflictError(f"The notebook {notebook_id} already exists!")
+        name, notebook_data = self._zeppelin_notebook_service.export_notebook(instance_id, notebook_name)
         self._notebook_store.store_notebook(notebook_id, name, notebook_data, username)
         return notebook_id
 

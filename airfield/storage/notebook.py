@@ -16,7 +16,7 @@ class NotebookStore:
         for key, value in self._kv_adapter.get_keys(BASE_KEY):
             if value["type"] != instance_type:
                 continue
-            notebooks.append(dict(id=key, name=value["name"]))
+            notebooks.append(dict(id=_get_id_of_key(key), name=value["name"]))
         return notebooks
 
     def get_notebook(self, notebook_id):
@@ -28,7 +28,7 @@ class NotebookStore:
             if value["type"] != instance_type:
                 continue
             if value["name"] == name:
-                return key
+                return _get_id_of_key(key)
         return None
 
     def delete_notebook(self, notebook_id):
@@ -36,3 +36,7 @@ class NotebookStore:
 
     def store_notebook(self, notebook_id, name, notebook_data, username):
         self._kv_adapter.put_key("{}/{}".format(BASE_KEY, notebook_id), dict(type="zeppelin", name=name, data=notebook_data, creator=username))
+
+
+def _get_id_of_key(key):
+    return key.split('/').pop()

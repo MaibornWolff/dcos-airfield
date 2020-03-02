@@ -49,7 +49,7 @@ def security_groups():
     """
     Returns a list of groups the user has in keycloak
     """
-    return auth.user_groups()
+    return auth.get_dcos_settings()
 
 
 @app_blueprint.route('/login')

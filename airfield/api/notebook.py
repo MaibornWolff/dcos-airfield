@@ -5,6 +5,7 @@ from .auth import require_login
 from ..util import metrics, dependency_injection as di
 from ..service.notebook import NotebookService
 from . import auth
+from ..util.exception import ConflictError
 
 
 notebook_blueprint = Blueprint('notebook', __name__)
@@ -28,10 +29,18 @@ def get_stored_notebooks():
 @instrumented_route('/api/notebook', 'POST')
 def export_notebook():
     data = request.get_json()
+    force = request.args.get('force', 'false').lower() == 'true'
     username = auth.get_user_name()
     instance_id = data["instance_id"]
     notebook_id = data["notebook_id"]
-    return dict(notebook_id=di.get(NotebookService).export_notebook(instance_id, notebook_id, username))
+    status = 200
+    msg = ''
+    try:
+        notebook_id = di.get(NotebookService).export_notebook(instance_id, notebook_id, username, force)
+    except ConflictError as e:
+        status = 409
+        msg = e.error
+    return dict(notebook_id=notebook_id, msg=msg), status
 
 
 @instrumented_route('/api/instance/<instance_id>/notebook', 'GET')

@@ -7,6 +7,7 @@ const OptimizeCSSPlugin = require('optimize-css-assets-webpack-plugin');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
+    mode: 'production',
     entry: {
         app: './app/main.js'
     },
@@ -16,12 +17,18 @@ module.exports = {
         chunkFilename: 'files/js/[name].[chunkhash].js',
         publicPath: '/'
     },
+    optimization: {
+        splitChunks: {
+            chunks: 'all'
+        }
+    },
+    
     module: {
         rules: [
             { test: /\.vue$/, loader: 'vue-loader', options: { extractCSS: true } },
             { test: /\.js$/, exclude: /node_modules/, loader: 'babel-loader' },
             { test: /\.(png|jpg)$/, loader: 'url-loader', options: {
-                limit: 1,
+                limit: 10,
                 name: 'files/img/[name].[hash:7].[ext]'
             } },
             { test: /\.(woff2?|eot|ttf|otf|svg)(\?.*)?$/, loader: 'url-loader', options: {
@@ -43,14 +50,9 @@ module.exports = {
     },
     devtool: false,
     plugins: [
-        new webpack.DefinePlugin({
-            'process.env': {
-                NODE_ENV: '"production"'
-            }
-        }),
         new UglifyJsPlugin(),
         new ExtractTextPlugin({
-            filename: 'files/css/[name].[contenthash].css'
+            filename: 'files/css/[name].[hash].css'
         }),
         new OptimizeCSSPlugin({
             cssProcessorOptions: {
@@ -62,20 +64,19 @@ module.exports = {
             template: './app/index.html',
             favicon: './app/assets/images/favicon.ico',
             inject: true,
-            chunksSortMode: 'dependency',
             minify: {
                 removeComments: true,
                 collapseWhitespace: true,
                 removeAttributeQuotes: true
             }
         }),
-        new webpack.optimize.CommonsChunkPlugin({
+        new webpack.optimize.SplitChunksPlugin({
             name: 'vendor',
             minChunks({ resource }) {
                 return resource && /\.js$/.test(resource) && resource.includes('node_modules');
             }
         }),
-        new webpack.optimize.CommonsChunkPlugin({
+        new webpack.optimize.SplitChunksPlugin({
             name: 'manifest',
             chunks: ['vendor']
         })

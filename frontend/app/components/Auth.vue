@@ -4,7 +4,9 @@
             <template slot="button-content">
                 {{ username }}
             </template>
-            <b-dropdown-item href="/logout">Logout</b-dropdown-item>
+            <b-dropdown-item href="/logout">
+                Logout
+            </b-dropdown-item>
         </b-nav-item-dropdown>
     </b-navbar-nav>
 </template>

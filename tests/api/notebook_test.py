@@ -42,10 +42,11 @@ class NotebookApiTest(unittest.TestCase):
         self.zeppelin_instance_mock.export_notebook.return_value = ("abcd", {"name": "abcd"})
         response = self.client.post("/api/notebook", json=dict(instance_id=instance_id, notebook_id="abcd"))
         self.assertEqual(response.status_code, 200)
-        return response.get_json()["notebook_id"]
+        return response.get_json()["notebook_id"], 200
 
     def test_delete_notebook(self):
-        notebook_id = self.test_export_notebook()
+        notebook_id, _ = self.test_export_notebook()
+        response = self.client.get("/api/notebook").get_json()
         response = self.client.delete("/api/notebook/{}".format(notebook_id))
         self.assertEqual(response.status_code, 200)
         response = self.client.get("/api/notebook").get_json()
@@ -54,7 +55,7 @@ class NotebookApiTest(unittest.TestCase):
     def test_import_notebook(self):
         configuration = dict(configuration=dict())
         instance_id = self.client.post("/api/instance", json=configuration).get_json()["instance_id"]
-        self.zeppelin_instance_mock.export_notebook.return_value = ("abcd", {"name": "abcd"})
+        self.zeppelin_instance_mock.export_notebook.return_value = ("abcd", {"name": "abcd"}), 200
         response = self.client.post("/api/notebook", json=dict(instance_id=instance_id, notebook_id="abcd"))
         self.assertEqual(response.status_code, 200)
         self.zeppelin_instance_mock.export_notebook.assert_called_once()
@@ -69,7 +70,7 @@ class NotebookApiTest(unittest.TestCase):
         configuration = dict(configuration=dict())
         instance_id = self.client.post("/api/instance", json=configuration).get_json()["instance_id"]
         response = self.client.get("/api/instance/{}/notebook".format(instance_id))
-        self.assertEqual(response.get_json(), notebooks)
+        self.assertEqual(response.get_json()["notebooks"], notebooks)
 
     def test_backup_restore_notebooks(self):
         notebooks = [{"name": "ABCD", "id": "abcd"}]

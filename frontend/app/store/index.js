@@ -2,12 +2,14 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 Vue.use(Vuex);
 
-import store from '@/store/core';
 import authStore from '@/store/auth';
+import instanceStore from '@/store/instance';
+import notebookStore from '@/store/notebook';
 
 export default new Vuex.Store({
     modules: {
-        main: store,
-        auth: authStore
+        instance: instanceStore,
+        auth: authStore,
+        notebook: notebookStore
     }
 });

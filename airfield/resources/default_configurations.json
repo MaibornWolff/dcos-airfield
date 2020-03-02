@@ -16,6 +16,15 @@
                 "executor_cores": 1,
                 "cores_max": 2
             },
+            "admin": {
+                "group": null,
+                "admins": []
+            },
+            "usermanagement": {
+                "enabled": false,
+                "password": null,
+                "users": {}
+            },
             "libraries": {
                 "python": [],
                 "r": []
@@ -39,6 +48,15 @@
                 "executor_cores": 1,
                 "cores_max": 4
             },
+            "admin": {
+                "group": null,
+                "admins": []
+            },
+            "usermanagement": {
+                "enabled": false,
+                "password": null,
+                "users": {}
+            },
             "libraries": {
                 "python": [],
                 "r": []
@@ -61,6 +79,15 @@
                 "executor_memory": 16384,
                 "executor_cores": 1,
                 "cores_max": 8
+            },
+            "admin": {
+                "group": null,
+                "admins": []
+            },
+            "usermanagement": {
+                "enabled": false,
+                "password": null,
+                "users": {}
             },
             "libraries": {
                 "python": [],
