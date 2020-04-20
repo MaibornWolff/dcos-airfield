@@ -5,7 +5,7 @@
                 <b-form-input v-model="row.item.details.comment" type="text" placeholder="Comment" autofocus></b-form-input>
                 <b-input-group-append>
                     <b-button variant="secondary" @click="commitInstance(row.item.details.comment)">
-                        <fa icon="comment"></fa> Commit
+                        <fa icon="comment"></fa> Save comment
                     </b-button>
                     <b-button variant="outline-danger" @click="toggle()">
                         <fa icon="comment-slash"></fa> Reset comment
@@ -65,7 +65,7 @@
                     this.$eventBus.$emit('showSuccessToast', `Comment resetted successfully!`);
                 }
                 catch (e) {
-                    this.$eventBus.$emit('showErrorToast', `Error reloading the instance!`);
+                    this.$eventBus.$emit('showErrorToast', `Error resetting the comment!`);
                 }
                 finally {
                     this.isLoading = false;
@@ -79,7 +79,8 @@
                     this.$eventBus.$emit('showSuccessToast', `Instance committed successfully!`);
                 }
                 catch (e) {
-                    this.$eventBus.$emit('showErrorToast', `Error committing the instance!`);
+                    this.$eventBus.$emit('showErrorToast', `Error committing the instance! Trying to reset the comment!`);
+                    this.resetComment();
                 }
                 finally {
                     this.isLoading = false;

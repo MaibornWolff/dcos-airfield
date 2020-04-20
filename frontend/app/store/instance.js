@@ -38,14 +38,17 @@ export default {
         },
         
         async reloadInstance({ commit, state, dispatch }, payload){
-            let instanceId, deleteConfiguration, reloadConfiguration;
+            let instanceId, deleteConfiguration, reloadConfiguration, instance;
             if(typeof payload === 'string'){
                 payload = { instanceId: payload };
             }
             if(typeof payload === 'object'){
                 instanceId = payload.instanceId;
-                deleteConfiguration = payload.deleteConfiguration !== undefined ? payload.deleteConfiguration : true;
                 reloadConfiguration = payload.reloadConfiguration !== undefined ? payload.reloadConfiguration : false;
+                deleteConfiguration = payload.deleteConfiguration !== undefined ? payload.deleteConfiguration : true;
+                if(reloadConfiguration){
+                    deleteConfiguration = false;
+                }
             }
             else{
                 throw Error('Payload type not supported!');
@@ -55,9 +58,14 @@ export default {
                 await dispatch('deleteInstanceConfiguration', instanceId);
             }
             if(reloadConfiguration){
-                await dispatch('loadInstanceConfiguration', { instanceId: instanceId, forceReload: reloadConfiguration });
+                // So the configuration is not loaded unnecessary, but if needed it is loaded simultaneously.
+                const responseList = await Promise.all([Server.getInstance(instanceId), dispatch('loadInstanceConfiguration', { instanceId, forceReload: reloadConfiguration })]);
+                instance = responseList[0];
             }
-            const instance = await Server.getInstance(instanceId);
+            else{
+                instance = await Server.getInstance(instanceId);
+            }
+            
             ['_showDetails', '_commit'].forEach(key => {
                 instance[key] = state.existingInstances[index][key];
             });
@@ -85,7 +93,7 @@ export default {
                 await Server.updateInstance(instanceConfiguration, instanceId);
                 commit('SET_INSTANCE_CONFIGURATIONS', state.instanceConfigurations);
                 // runtimes will be updated, so a reload of the details is required. The configuration has only updates in the comment, so it isn't necessary to delete it.
-                await dispatch('reloadInstance', { instanceId: instanceId, deleteConfiguration: true, reloadConfiguration: true });
+                await dispatch('reloadInstance', { instanceId, deleteConfiguration: true, reloadConfiguration: true });
             }
         },
         
@@ -101,10 +109,7 @@ export default {
             if (state.defaultConfigurations.length > 0) {
                 return;
             }
-            const data = await Server.getDefaultConfigurations().then(
-                response => {
-                    return response;
-                });
+            const data = await Server.getDefaultConfigurations();
             data.forEach(instance => {
                 instance.delete_at = instance.delete_at || '';
             });
@@ -115,9 +120,9 @@ export default {
             commit('SET_NEW_SELECTED_INSTANCE', instance);
         },
         
-        async loadSelectedInstance({ dispatch }, instanceid){
-            dispatch('setSelectedNewInstanceId', instanceid);
-            dispatch('selectNewInstance', await dispatch('loadInstanceConfiguration', { instanceId: instanceid, forceReload: true }));
+        async loadSelectedInstance({ dispatch }, instanceId){
+            dispatch('setSelectedNewInstanceId', instanceId);
+            dispatch('selectNewInstance', await dispatch('loadInstanceConfiguration', { instanceId, forceReload: true }));
         },
 
         async resetNewInstance({ state, dispatch }) {
@@ -139,10 +144,7 @@ export default {
             if(!forceReload && state.deletedInstances.length > 0){
                 return;
             }
-            const data = await Server.getInstances(true).then(
-                response => {
-                    return response;
-                });
+            const data = await Server.getInstances(true);
             commit('SET_DELETED_INSTANCES', data);
         },
 
@@ -179,10 +181,7 @@ export default {
                 await dispatch('deleteInstanceConfiguration', instanceId);
             }
             if(!state.instanceConfigurations[instanceId]){
-                Vue.set(state.instanceConfigurations, instanceId, await Server.getInstanceConfiguration(instanceId).then(
-                    response => {
-                        return response;
-                    }));
+                Vue.set(state.instanceConfigurations, instanceId, await Server.getInstanceConfiguration(instanceId));
                 commit('SET_INSTANCE_CONFIGURATIONS', state.instanceConfigurations);
             }
             return state.instanceConfigurations[instanceId];

@@ -11,13 +11,6 @@
                         </b>
                     </div>
                     <div v-if="!isLoading">
-                        <b-button class="m-1" size="sm" @click="switchImportExport()">
-                            <fa icon="list"></fa>
-                            {{ isImport ? 'Show notebooks for export' : 'Show notebooks for import' }}
-                        </b-button>
-                        <b-button class="m-1" size="sm" @click="resetAndReload()">
-                            <fa icon="sync"></fa> Refresh
-                        </b-button>
                         <template v-if="!isImport">
                             <b-button v-for="action in actions"
                                       :key="action.key"
@@ -31,6 +24,13 @@
                                 {{ action.name }}
                             </b-button>
                         </template>
+                        <b-button class="m-1" size="sm" @click="switchImportExport()">
+                            <fa icon="list"></fa>
+                            {{ isImport ? 'Show notebooks for export' : 'Show notebooks for import' }}
+                        </b-button>
+                        <b-button class="m-1" size="sm" @click="resetAndReload()">
+                            <fa icon="sync"></fa> Refresh
+                        </b-button>
                     </div>
                 </div>
                 <template class="card-body">
@@ -70,6 +70,7 @@
         <confirmation-modal
             ref="confirmation"
             @ok="doExport(notebookId, notebookName, true)"
+            ok-title="Overwrite"
             message="The selected notebook already exists in Airfield. Do you want to overwrite it?"
         >
         </confirmation-modal>

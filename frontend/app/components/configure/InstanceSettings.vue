@@ -1,7 +1,7 @@
 <template>
     <div>
         <b-card no-body>
-            <b-tabs pills card justified>
+            <b-tabs card fill>
                 <b-tab title="General" active>
                     <label>Comment</label>
                     <b-form-input v-model="selectedNewInstance.comment" placeholder="Comment"></b-form-input>
@@ -81,7 +81,7 @@
                     <loading-spinner v-if="costsLoading"></loading-spinner>
                 </b-tab>
 
-                <b-tab title="User management">
+                <b-tab title="Users">
                     <b-container>
                         <b-row class="mt-2">
                             <h6>Options</h6>
@@ -129,7 +129,7 @@
                     </b-container>
                 </b-tab>
 
-                <b-tab title="Administration" v-if="oidcActivated" ref="administrationTab">
+                <b-tab title="Admins" v-if="oidcActivated" ref="adminsTab">
                     <b-container class="mt-4" v-if="areGroupsSelectable">
                         <h6>Group</h6>
                         <div>
@@ -152,7 +152,7 @@
         </b-card>
         <br>
         <create-instance-button
-            @select-administration-tab="selectAdministrationTab"
+            @select-admins-tab="selectAdminsTab"
         ></create-instance-button>
     </div>
 </template>
@@ -237,8 +237,8 @@
         },
 
         methods: {
-            selectAdministrationTab(){
-                this.$refs.administrationTab.activate();
+            selectAdminsTab(){
+                this.$refs.adminsTab.activate();
             },
             
             addUser() {

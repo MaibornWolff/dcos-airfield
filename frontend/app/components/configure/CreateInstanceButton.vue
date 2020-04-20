@@ -17,7 +17,7 @@
             ref="confirmation"
             ok-variant="primary"
             :message="message"
-            @ok="$emit('select-administration-tab')"
+            @ok="$emit('select-admins-tab')"
         >
         </confirmation-modal>
     </div>

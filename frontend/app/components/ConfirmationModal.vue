@@ -10,6 +10,7 @@
         :size="size"
         auto-focus-button="ok"
         @ok="okClicked"
+        :ok-title="okTitle"
     >
         {{ message }}
     </b-modal>
@@ -27,6 +28,10 @@
             okVariant: {
                 type: String,
                 default: 'primary'
+            },
+            okTitle: {
+                type: String,
+                default: 'ok'
             },
             centered: {
                 type: Boolean,

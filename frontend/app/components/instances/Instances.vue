@@ -158,7 +158,7 @@
             
             async reloadInstanceDetails(instanceId){
                 try{
-                    await this.$store.dispatch('reloadInstance', { instanceId: instanceId, deleteConfiguration: false });
+                    await this.$store.dispatch('reloadInstance', { instanceId, deleteConfiguration: false });
                 }
                 catch(e) {
                     console.error(e);
