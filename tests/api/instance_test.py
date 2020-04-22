@@ -61,8 +61,7 @@ class InstanceApiTest(unittest.TestCase):
         configuration = dict(configuration=dict(comment="foobar", delete_at="2000-01-01", notebook=dict(cores=4)))
         response = self.client.post("/api/instance", json=configuration)
         data = response.get_json()
-        for key in ["instance_id"]:
-            self.assertTrue(key in data)
+        self.assertTrue("instance_id" in data)
         instance_id = data["instance_id"]
         app_definition = self.marathon_adapter_mock.value_deploy_instance()
         self.assertEqual(app_definition["cpus"], 4)

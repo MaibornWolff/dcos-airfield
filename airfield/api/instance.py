@@ -1,15 +1,17 @@
 """API for instance management"""
 
 import json
+
 from flask import Blueprint, request
+
 from .auth import require_login, get_user_name
 from ..service.instance import InstanceService
 from ..service.notebook import NotebookService
 from ..settings import config
 from ..util import metrics, dependency_injection as di
+from ..util.exception import ConfigurationException, HostNetworkException
 from ..util.logging import logger
 from ..util.serialization import clean_input_string
-from ..util.exception import ConfigurationException
 
 instance_blueprint = Blueprint('instance', __name__)
 
@@ -93,6 +95,9 @@ def create_instance():
         return dict(instance_id=instance_id), 200
     except ConfigurationException as e:
         return dict(msg=e.error), 409
+    except HostNetworkException as e:
+        return dict(msg=e.error), 501
+
 
 
 @instrumented_route('/api/instance/<instance_id>/state', 'GET')

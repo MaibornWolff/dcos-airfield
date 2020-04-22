@@ -2,9 +2,11 @@
 
 import time
 from enum import Enum
+
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from prometheus_client import Counter
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 from .dcos_auth import retrieve_auth
 from ..util.logging import logger
 
@@ -40,7 +42,7 @@ class MarathonAdapter(object):
         response = requests.get(url=url, auth=self.auth, verify=False)
         try:
             task = response.json()['app'].get("tasks")[0]
-            ip_address = task.get("ipAddresses")[0].get("ipAddress")
+            ip_address = task.get("host")
             port = task.get("ports")[0]
             return ip_address, port
         except KeyError as e:

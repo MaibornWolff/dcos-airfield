@@ -26,10 +26,11 @@ export default {
             response = await axiosInstance.post(INSTANCE_PATH, { configuration: configuration });
         }
         catch (error){
-            if(error.response.status === 409) {
-                return { message: error.response.data.msg, status: 409 };
+            let message;
+            if(error.response.data && error.response.data.msg){
+                message = error.response.data.msg;
             }
-            return { status: error.response.status };
+            return { message: message, status: error.response.status };
         }
         return { status: response.status };
     },
@@ -73,7 +74,8 @@ export default {
         if (action === 'delete') {
             await axiosInstance.delete([INSTANCE_PATH, instanceId].join('/'));
         }
-        await axiosInstance.post([INSTANCE_PATH, instanceId, action].join('/'));
-        
+        else {
+            await axiosInstance.post([INSTANCE_PATH, instanceId, action].join('/'));
+        }
     }
 };

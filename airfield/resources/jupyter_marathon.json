@@ -1,0 +1,75 @@
+{
+  "instances": 1,
+  "user": "root",
+  "gpu": {
+    "enabled": false,
+    "gpus": 0
+  },
+  "env": {
+    "SPARK_EXECUTOR_DOCKER_IMAGE": "ghcr.io/maibornwolff/jupyterlab:0.1.0"
+  },
+  "container": {
+    "type": "MESOS",
+    "docker": {
+      "image": "ghcr.io/maibornwolff/jupyterlab:0.1.0",
+      "forcePullImage": false
+    },
+    "portMappings": [
+      {
+        "containerPort": 8888,
+        "hostPort": 0,
+        "protocol": "tcp",
+        "servicePort": 10006,
+        "name": "juypter"
+      },
+      {
+        "containerPort": 7077,
+        "servicePort": 10095,
+        "name": "sparkdriver"
+      },
+      {
+        "containerPort": 4040,
+        "servicePort": 10197,
+        "name": "sparkui"
+      }
+    ]
+  },
+  "portDefinitions": [
+    {
+      "port": 0,
+      "protocol": "tcp",
+      "name": "juypter"
+    },
+    {
+      "port": 0,
+      "protocol": "tcp",
+      "name": "sparkdriver"
+    },
+    {
+      "port": 0,
+      "protocol": "tcp",
+      "name": "sparkui"
+    }
+  ],
+  "networks": [
+    {
+      "mode": "host"
+    }
+  ],
+  "upgradeStrategy": {
+    "maximumOverCapacity": 0,
+    "minimumHealthCapacity": 0
+  },
+  "labels": {
+  },
+  "healthChecks": [
+    {
+      "protocol": "TCP",
+      "portIndex": 0,
+      "gracePeriodSeconds": 300,
+      "intervalSeconds": 30,
+      "timeoutSeconds": 15,
+      "maxConsecutiveFailures": 5
+    }
+  ]
+}

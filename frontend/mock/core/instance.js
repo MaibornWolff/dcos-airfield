@@ -45,7 +45,8 @@ function prepareConfiguration(configuration){
                 users[username] = generateId();
             }
         });
-    }else if(configuration.type === 'jupyter'){
+    }
+    else if(configuration.type === 'jupyter'){
         if(!configuration.usermanagement.password){
             configuration.usermanagement.password = generateId();
         }

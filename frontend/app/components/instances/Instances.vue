@@ -21,10 +21,10 @@
                 </b-button>
             </div>
         </div>
-        <template class="card-body">
+        <b-card-body class="card-body">
             <template v-if="existingInstancesLoaded">
                 <loading-spinner v-if="isLoading && existingInstances.length === 0" class="mt-3"></loading-spinner>
-                <b-table v-else striped hover :items="existingInstances" :fields="fields" class="mt-4" primary-key="instance_id">
+                <b-table v-else striped hover :items="existingInstances" :fields="fields" class="mt-4" primary-key="instance_id" sort-by="details.created_at" sort-desc>
                     <template v-slot:cell(status)="props">
                         <span v-if="props.item.status">{{ props.item.status }}</span>
                         <fa icon="spinner" spin v-else></fa>
@@ -58,7 +58,7 @@
             </template>
             <template v-if="!existingInstancesLoaded">
                 <loading-spinner v-if="isLoading && deletedInstances.length === 0" class="mt-3"></loading-spinner>
-                <b-table v-else striped hover :items="deletedInstances" :fields="deletedInstancesField" class="mt-4">
+                <b-table v-else striped hover :items="deletedInstances" :fields="deletedInstancesField" class="mt-4" sort-by="details.deleted_at" sort-desc>
                     <template v-slot:cell(show_details)="row">
                         <b-button
                             size="sm"
@@ -77,7 +77,7 @@
             </template>
             <passwords-modal ref="passwordsModal"></passwords-modal>
             <notebooks-modal ref="notebooksModal"></notebooks-modal>
-        </template>
+        </b-card-body>
     </b-card>
 </template>
 

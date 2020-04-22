@@ -6,20 +6,22 @@ import string
 from ..storage.instance import InstanceStore
 from ..adapter.marathon import MarathonAdapter, InstanceState
 from .instance_zeppelin import ZeppelinInstanceService
+from .instance_jupyter import JupyterInstanceService
 from ..configuration.service import ConfigurationService
 from ..settings import config
 from ..util import dependency_injection as di
 from ..util import metrics
 from ..util.logging import logger
 from ..api.auth import get_airfield_groups, get_user_groups
-from ..util.exception import ConfigurationException, InstanceRunningTimeException
 
+from ..util.exception import ConfigurationException, InstanceRunningTimeException, InstanceTypeError
 
 class InstanceService:
     @di.inject
     def __init__(self, zeppelin_instance: ZeppelinInstanceService, configuration_service: ConfigurationService,
-                 instance_store: InstanceStore, marathon_adapter: MarathonAdapter):
+                 instance_store: InstanceStore, marathon_adapter: MarathonAdapter, jupyter_instance: JupyterInstanceService):
         self._zeppelin_instance_service = zeppelin_instance
+        self._jupyter_instance_service = jupyter_instance
         self._configuration_service = configuration_service
         self._instance_store = instance_store
         self._marathon_adapter = marathon_adapter
@@ -48,17 +50,19 @@ class InstanceService:
     def get_instance_state(self, instance_id, instance_configuration=None, deleted=False):
         if instance_configuration is None:
             instance_configuration = self._instance_store.get_instance(instance_id, deleted=deleted)
-        status = InstanceState.DELETED if deleted else self._marathon_adapter.get_instance_status(
-            _instance_path(instance_configuration["configuration"], instance_id))
+        status = InstanceState.NOT_FOUND
         stuck_deploying = False
         stuck_duration_seconds = 0
-        if status == InstanceState.DEPLOYING:
-            runtimes = instance_configuration["runtimes"]
-            if runtimes and runtimes[-1]["stopped_at"] is None:
-                started_at = datetime.fromtimestamp(runtimes[-1]["started_at"])
-                if started_at + timedelta(seconds=10 * 60) <= datetime.now():
-                    stuck_deploying = True
-                    stuck_duration_seconds = (datetime.now() - started_at).seconds
+        if instance_configuration:
+            status = InstanceState.DELETED if deleted else self._marathon_adapter.get_instance_status(
+                _instance_path(instance_configuration["configuration"], instance_id))
+            if status == InstanceState.DEPLOYING:
+                runtimes = instance_configuration["runtimes"]
+                if runtimes and runtimes[-1]["stopped_at"] is None:
+                    started_at = datetime.fromtimestamp(runtimes[-1]["started_at"])
+                    if started_at + timedelta(seconds=10 * 60) <= datetime.now():
+                        stuck_deploying = True
+                        stuck_duration_seconds = (datetime.now() - started_at).seconds
         return {
             "instance_id": instance_id,
             "status": status.name,
@@ -86,6 +90,10 @@ class InstanceService:
         else:
             logger.error('Error while retrieving the ip address and the port of the instance {}'.format(instance_id))
             return None
+
+    @metrics.instrument
+    def get_instance_type(self, instance_id):
+        return self._instance_store.get_instance(instance_id)["configuration"]["type"]
 
     @metrics.instrument
     def get_instance_credentials(self, instance_id):
@@ -122,7 +130,7 @@ class InstanceService:
         instance_id = _generate_instance_id()
         instance_path = _instance_path(configuration, instance_id)
         metadata = dict(created_by=username, created_at=datetime.now().timestamp())
-        self._zeppelin_instance_service.create_instance(instance_path, configuration)
+        self._get_service(configuration).create_instance(instance_path, configuration)
         configuration = self._instance_store.insert_instance(instance_id, configuration, metadata)
         self._start_runtime(instance_id, self._calculate_cost_factors(configuration))
         return instance_id
@@ -135,7 +143,7 @@ class InstanceService:
         configuration = self._configuration_service.prepare_configuration(configuration)
         if self._marathon_adapter.get_instance_status(instance_path) != InstanceState.STOPPED:
             self._finish_runtime(instance_id)
-        self._zeppelin_instance_service.update_instance(instance_path, configuration)
+        self._get_service(configuration).update_instance(instance_path, configuration)
         configuration = self._instance_store.update_instance_configuration(instance_id, configuration)
         self._start_runtime(instance_id, self._calculate_cost_factors(configuration))
         return instance_id
@@ -143,7 +151,7 @@ class InstanceService:
     @metrics.instrument
     def delete_instance(self, instance_id):
         instance_configuration = self._instance_store.get_instance(instance_id)["configuration"]
-        self._zeppelin_instance_service.delete_instance(_instance_path(instance_configuration, instance_id))
+        self._get_service(instance_configuration).delete_instance(_instance_path(instance_configuration, instance_id))
         # We do not check the status here, so the last runtime is always finished.
         self._finish_runtime(instance_id)
         self._add_deleted_at(instance_id)
@@ -242,6 +250,15 @@ class InstanceService:
             logger.debug(e)
             self._instance_store.finish_runtime(instance_id)
             self._instance_store.start_runtime(instance_id, cost_factors)
+
+    def _get_service(self, configuration):
+        instance_type = configuration["type"]
+        if instance_type == "jupyter":
+            return self._jupyter_instance_service
+        elif instance_type == "zeppelin":
+            return self._zeppelin_instance_service
+        else:
+            raise InstanceTypeError(f"The given instance type {instance_type} does not exist! Please select zeppelin or jupyter!")
 
 
 def _calculate_costs(instance_configuration):

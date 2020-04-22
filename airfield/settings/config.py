@@ -18,6 +18,10 @@ HDFS_CONFIG_FOLDER = os.getenv("HDFS_CONFIG_FOLDER", "").rstrip("/")
 ZEPPELIN_DOCKER_IMAGE = os.getenv("ZEPPELIN_DOCKER_IMAGE")
 SPARK_MESOS_EXECUTOR_DOCKER_IMAGE = os.getenv("SPARK_MESOS_EXECUTOR_DOCKER_IMAGE")
 
+## Jupyter config
+
+JUPYTER_DOCKER_IMAGE = os.getenv("JUPYTER_DOCKER_IMAGE")
+
 ## Cost config
 
 COST_TRACKING_ENABLED = os.getenv("AIRFIELD_COST_TRACKING_ENABLED", "false").lower() == "true"
@@ -41,6 +45,8 @@ DCOS_LOGIN_URL = os.getenv('DCOS_LOGIN_URL', 'https://leader.mesos:443/acs/api/v
 DCOS_BASE_URL = os.getenv('DCOS_BASE_URL', 'https://leader.mesos:443/')
 DCOS_USERNAME = os.getenv('DCOS_USERNAME', None)
 DCOS_PASSWORD = os.getenv('DCOS_PASSWORD', None)
+
+AIRFIELD_VIRTUAL_NETWORK_ENABLED = os.getenv('AIRFIELD_VIRTUAL_NETWORK_ENABLED', True)
 
 ## OIDC specific config
 

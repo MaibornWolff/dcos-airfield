@@ -3,6 +3,10 @@
         <b-card no-body>
             <b-tabs card fill>
                 <b-tab title="General" active>
+                    <label>Type</label>
+                    <b-form-select v-model="selectedNewInstance.type" :options="['zeppelin', 'jupyter']" class="mb-3">
+                    </b-form-select>
+                    
                     <label>Comment</label>
                     <b-form-input v-model="selectedNewInstance.comment" placeholder="Comment"></b-form-input>
 
@@ -49,20 +53,22 @@
                             </b-col>
                         </b-row>
                     </b-container>
-
-                    <label>Pyspark Python</label>
-                    <b-form-input v-model="selectedNewInstance.spark.python_version"></b-form-input>
+                    <template v-if="zeppelin">
+                        <label>Pyspark Python</label>
+                        <b-form-input v-model="selectedNewInstance.spark.python_version"></b-form-input>
+                    </template>
                 </b-tab>
+                <template v-if="zeppelin">
+                    <b-tab title="Libraries">
+                        <h6><fa :icon="['fab', 'python']"></fa> Additional Python Libraries</h6>
+                        <label class="mt-0">Custom libraries (separate with ";")</label>
+                        <b-form-input v-model="additionalPythonLibraries"></b-form-input>
 
-                <b-tab title="Libraries">
-                    <h6><fa :icon="['fab', 'python']"></fa> Additional Python Libraries</h6>
-                    <label class="mt-0">Custom libraries (separate with ";")</label>
-                    <b-form-input v-model="additionalPythonLibraries"></b-form-input>
-                
-                    <h6><fa icon="registered"></fa> Additional R Libraries</h6>
-                    <label class="mt-0">Custom libraries (separate with ";")</label>
-                    <b-form-input v-model="additionalRLibraries"></b-form-input>
-                </b-tab>
+                        <h6><fa icon="registered"></fa> Additional R Libraries</h6>
+                        <label class="mt-0">Custom libraries (separate with ";")</label>
+                        <b-form-input v-model="additionalRLibraries"></b-form-input>
+                    </b-tab>
+                </template>
 
                 <b-tab title="Costs" v-if="costTrackingEnabled">
                     <h6><fa icon="microchip"></fa>CPU Core</h6>
@@ -95,37 +101,43 @@
                         </b-row>
                     </b-container>
                     <b-container v-if="selectedNewInstance.usermanagement.enabled">
-                        <b-row class="mt-4">
-                            <h6>Users</h6>
-                        </b-row>
-                        <b-row v-for="(username, index) in Object.keys(selectedNewInstance.usermanagement.users)" :key="index" class="text-center">
-                            <b-col>
-                                <span>
-                                    {{ username }}
-                                </span>
-                            </b-col>
-                            <b-col>
-                                <span>
-                                    {{ selectedNewInstance.usermanagement.users[username] }}<!-- password -->
-                                </span>
-                            </b-col>
-                            <b-col>
-                                <fa @click="deleteRow(username)" icon="trash-alt" class="deleteBtn"></fa>
-                            </b-col>
-                        </b-row>
-                        <b-row class="text-center">
-                            <b-col>
-                                <b-form-input v-model="newUsername" placeholder="username"></b-form-input>
-                            </b-col>
-                            <b-col>
-                                <b-form-input v-model="newPassword" placeholder="password"></b-form-input>
-                            </b-col>
-                            <b-col>
-                                <b-button size="sm" variant="outline-info" class="btn" @click="addUser">
-                                    Add new user
-                                </b-button>
-                            </b-col>
-                        </b-row>
+                        <template v-if="zeppelin">
+                            <b-row class="mt-4">
+                                <h6>Users</h6>
+                            </b-row>
+                            <b-row v-for="(username, index) in Object.keys(selectedNewInstance.usermanagement.users)" :key="index" class="text-center">
+                                <b-col>
+                                    <span>
+                                        {{ username }}
+                                    </span>
+                                </b-col>
+                                <b-col>
+                                    <span>
+                                        {{ selectedNewInstance.usermanagement.users[username] }}<!-- password -->
+                                    </span>
+                                </b-col>
+                                <b-col>
+                                    <fa @click="deleteRow(username)" icon="trash-alt" class="deleteBtn"></fa>
+                                </b-col>
+                            </b-row>
+                            <b-row class="text-center">
+                                <b-col>
+                                    <b-form-input v-model="newUsername" placeholder="username"></b-form-input>
+                                </b-col>
+                                <b-col>
+                                    <b-form-input v-model="newPassword" placeholder="password"></b-form-input>
+                                </b-col>
+                                <b-col>
+                                    <b-button size="sm" variant="outline-info" class="btn" @click="addUser">
+                                        Add new user
+                                    </b-button>
+                                </b-col>
+                            </b-row>
+                        </template>
+                        <template v-else>
+                            <label>Password</label>
+                            <b-form-input v-model="selectedNewInstance.usermanagement.password" placeholder="Password"></b-form-input>
+                        </template>
                     </b-container>
                 </b-tab>
 
@@ -197,7 +209,8 @@
                 instanceCosts: 0.0,
                 costsLoading: false,
                 areGroupsSelectable: false,
-                isAdministrationActive: false
+                isAdministrationActive: false,
+                zeppelin: true
             };
         },
 
@@ -222,14 +235,15 @@
         watch: {
             selectedNewInstance: {
                 deep: true,
-                immediate: true,
                 handler: function() {
+                    this.zeppelin = this.selectedNewInstance.type === 'zeppelin';
                     this.costsUpToDate = false;
                 }
             }
         },
         
         created() {
+            this.zeppelin = this.selectedNewInstance.type === 'zeppelin';
             this.areGroupsSelectable = !this.isSelectedInstanceExisting && this.oidcActivated && this.dcosGroupsActivated;
             if(this.areGroupsSelectable && this.dcosGroups.length === 0){
                 this.$eventBus.$emit('showErrorToast', `There are no groups available for the user ${this.username}! \n Please add one to your Keycloak account or the available groups of Airfield!`);

@@ -1,6 +1,12 @@
 """Exception types used by airfield"""
 
 
+class InstanceTypeError(Exception):
+    def __init__(self, error):
+        super().__init__()
+        self.error = error
+
+
 class ConfigurationException(Exception):
     def __init__(self, error):
         super().__init__()
@@ -21,3 +27,9 @@ class ConflictError(Exception):
 
 class TechnicalException(Exception):
     pass
+
+
+class HostNetworkException(Exception):
+    def __init__(self, error):
+        super().__init__()
+        self.error = error

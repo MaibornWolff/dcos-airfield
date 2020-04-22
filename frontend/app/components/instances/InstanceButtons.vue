@@ -112,6 +112,7 @@
                     }
                 }
                 catch (e) {
+                    console.error(e);
                     const msg = e.response.status === 403 ? e.response.data.msg : '';
                     this.$eventBus.$emit('showErrorToast', `Error executing action "${action.name}". ${msg}`);
                 }

@@ -9,7 +9,12 @@
     "docker": {
       "image": "maibornwolff/zeppelin:1.0-0.8.0-all-2.2.1",
       "forcePullImage": false
-    }
+    },
+    "portMappings": [
+      {
+        "hostPort": 0
+      }
+    ]
   },
   "networks": [
     {

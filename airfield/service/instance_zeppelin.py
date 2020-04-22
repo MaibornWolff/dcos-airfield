@@ -1,7 +1,9 @@
 
 import hashlib
 import json
+
 from jinja2 import Template
+
 from ..adapter.marathon import MarathonAdapter
 from ..settings import config
 from ..settings.base import ZEPPELIN_MARATHON_FILE, SHIRO_CONF_FILE
@@ -33,6 +35,14 @@ class ZeppelinInstanceService:
 def _generate_marathon_configuration(app_id, configuration):
     with open(ZEPPELIN_MARATHON_FILE) as marathon_file:
         app_definition = json.load(marathon_file)
+
+    if config.AIRFIELD_VIRTUAL_NETWORK_ENABLED:
+        del app_definition["portDefinitions"]
+        app_definition["networks"][0]["mode"] = "container"
+        app_definition["networks"][0]["name"] = "dcos"
+    else:
+        del app_definition["container"]["portMappings"]
+        app_definition["networks"][0]["mode"] = "host"
 
     app_definition["id"] = app_id
     app_definition["cpus"] = int(configuration["notebook"]["cores"])
