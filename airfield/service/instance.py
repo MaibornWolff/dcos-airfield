@@ -265,7 +265,6 @@ def _generate_instance_id() -> str:
 
 def _instance_path(configuration, instance_id):
     if configuration["admin"]["group"]:
-        return "{}/{}/{}".format(config.MARATHON_APP_GROUP,
-                                 config.DCOS_GROUPS_MAPPING.get(configuration["admin"]["group"]), instance_id)
+           return "{}/{}".format(config.DCOS_GROUPS_MAPPING.get(configuration["admin"]["group"]), instance_id)
     else:
         return "{}/{}".format(config.MARATHON_APP_GROUP, instance_id)

@@ -52,10 +52,6 @@
     {{/service.service_account_secret}}
     "ZEPPELIN_DOCKER_IMAGE": "{{resource.assets.container.docker.zeppelin}}",
     "SPARK_MESOS_EXECUTOR_DOCKER_IMAGE": "{{resource.assets.container.docker.spark}}",
-    "PACKAGE_NAME": "airfield",
-    "PACKAGE_VERSION": "0.3.0-beta1",
-    "PACKAGE_BUILD_TIME_EPOCH_MS": "%(time_epoche_ms)s",
-    "PACKAGE_BUILD_TIME_STR": "%(time_str)s",
     {{#airfield.dcos_base_url}}
     "DCOS_BASE_URL": "{{airfield.dcos_base_url}}",
     {{/airfield.dcos_base_url}}
@@ -65,17 +61,33 @@
     {{#airfield.etcd_endpoint}}
     "AIRFIELD_ETCD_ENDPOINT": "{{airfield.etcd_endpoint}}",
     {{/airfield.etcd_endpoint}}
-    {{#airfield.app_group}}
-    "AIRFIELD_MARATHON_APP_GROUP": "{{airfield.app_group}}",
-    {{/airfield.app_group}}
     {{#airfield.config_base_key}}
     "AIRFIELD_CONFIG_BASE_KEY": "{{airfield.config_base_key}}",
     {{/airfield.config_base_key}}
-    {{#airfield.oidc_config}}
-    "AIRFIELD_OIDC_ACTIVATED": "1",
-    "AIRFIELD_OIDC_SECRET_FILE": "{{airfield.oidc_config}}",
-    {{/airfield.oidc_config}}
-    "AIRFIELD_BASE_HOST" : "{{airfield.marathon_lb_base_host}}"
+    {{#airfield.app_group}}
+    "AIRFIELD_MARATHON_APP_GROUP": "{{airfield.app_group}}",
+    {{/airfield.app_group}}
+    {{#airfield.dcos_groups_mapping_base64}}
+    "AIRFIELD_DCOS_GROUPS_ENABLED": "true",
+    "AIRFIELD_DCOS_GROUPS_MAPPING_BASE64": "{{airfield.dcos_groups_mapping_base64}}",
+    {{/airfield.dcos_groups_mapping_base64}}
+    {{#airfield.oidc_config_base64}}
+    "AIRFIELD_OIDC_ACTIVATED": "true",
+    "AIRFIELD_OIDC_SECRET_BASE64": "{{airfield.oidc_config_base64}}",
+    {{/airfield.oidc_config_base64}}
+    {{#airfield.cost_tracking.enabled}}
+    "AIRFIELD_COST_TRACKING_ENABLED": "true",
+    "AIRFIELD_COST_CORE_PER_MINUTE": "{{airfield.cost_tracking.cost_core_per_minute}}",
+    "AIRFIELD_COST_GB_PER_MINUTE": "{{airfield.cost_tracking.cost_gb_per_minute}}",
+    "AIRFIELD_COST_CURRENCY": "{{airfield.cost_tracking.currency}}",
+    {{/airfield.cost_tracking.enabled}}
+    {{#airfield.hdfs_config}}
+    "HDFS_CONFIG_FOLDER": "{{airfield.hdfs_config}}",
+    {{/airfield.hdfs_config}}
+    "PACKAGE_NAME": "airfield",
+    "PACKAGE_VERSION": "0.3.0-beta1",
+    "PACKAGE_BUILD_TIME_EPOCH_MS": "%(time_epoch_ms)s",
+    "PACKAGE_BUILD_TIME_STR": "%(time_str)s"
   },
   "healthChecks": [
     {

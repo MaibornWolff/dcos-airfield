@@ -2,6 +2,7 @@
 
 import json
 import os
+import base64
 
 ## Base config
 
@@ -10,8 +11,6 @@ LOGGING_LEVEL = os.getenv('AIRFIELD_LOGGING_LEVEL', 'INFO')
 ETCD_ENDPOINT = os.getenv('AIRFIELD_ETCD_ENDPOINT')
 CONSUL_ENDPOINT = os.getenv('AIRFIELD_CONSUL_ENDPOINT')
 CONFIG_BASE_KEY = os.getenv('AIRFIELD_CONFIG_BASE_KEY', 'airfield')
-
-NOTEBOOK_BACKUP_ENABLED = os.getenv("AIRFIELD_NOTEBOOK_BACKUP_ENABLED", "false").lower() == "true"
 
 ## Zeppelin config
 
@@ -30,7 +29,12 @@ COST_GB_PER_MINUTE = float(os.getenv("AIRFIELD_COST_GB_PER_MINUTE", "0.0"))
 
 MARATHON_APP_GROUP = os.getenv("AIRFIELD_MARATHON_APP_GROUP", "airfield-zeppelin")
 DCOS_GROUPS_ENABLED = os.getenv("AIRFIELD_DCOS_GROUPS_ENABLED", "false").lower() == "true"
-DCOS_GROUPS_MAPPING = json.loads(os.getenv("AIRFIELD_DCOS_GROUPS_MAPPING", "{}"))
+if os.getenv("AIRFIELD_DCOS_GROUPS_MAPPING_BASE64"):
+    DCOS_GROUPS_MAPPING = json.loads(base64.b64decode(os.getenv("AIRFIELD_DCOS_GROUPS_MAPPING_BASE64")))
+elif os.getenv("AIRFIELD_DCOS_GROUPS_MAPPING"):
+    DCOS_GROUPS_MAPPING = json.loads(os.getenv("AIRFIELD_DCOS_GROUPS_MAPPING"))
+else:
+    DCOS_GROUPS_MAPPING = {}
 
 DCOS_SERVICE_ACCOUNT_CREDENTIAL = os.getenv('DCOS_SERVICE_ACCOUNT_CREDENTIAL', None)
 DCOS_LOGIN_URL = os.getenv('DCOS_LOGIN_URL', 'https://leader.mesos:443/acs/api/v1/auth/login')
