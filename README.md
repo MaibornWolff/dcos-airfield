@@ -2,9 +2,24 @@
 
 <h1 align="center">Airfield</h1>
 
-Airfield is an open source tool for the DC/OS ecosystem that enables teams to easily collaborate with shared Zeppelin instances.
+Airfield is an OpenSource tool for the DC/OS ecosystem that enables teams to easily collaborate with shared Apache Zeppelin instances. It allows you to create, pause, start and delete Zeppelin instances and assign infrastructure resources to them, all through a nice and simple interface. Airfield allows data scientists, ML engineers and others to efficiently work with Zeppelin notebooks without needing any DC/OS, infrastructure or CI/CD knowledge.
 
-The application consists of a micro service written in Flask and a User Interface written in Vue. It was developed and is being maintained by [MaibornWolff](https://www.maibornwolff.de/).
+Major features are:
+* Create, pause, start, delete Zeppelin instances
+* Add python and R libraries to the Zeppelin instances
+* Integration with Spark
+* Define resource constraints for Zeppelin and for Spark
+* Reconfigure existing instances
+* Import / Export notebooks
+* Display resource costs that the instances caused
+* Works with the resource quotas of DC/OS 2
+* Support for OpenID Connect
+* Set credentials for individual notebooks
+
+Next major feature:
+* Support for managing JupyterLab instances.
+
+The application consists of a microservice written in Flask and a User Interface written in Vue. It was developed and is being maintained by [MaibornWolff](https://www.maibornwolff.de/).
 
 ## Deployment
 
@@ -244,10 +259,9 @@ npm run lint
 
 ## Roadmap
 
-The current release contains all basic functionality to collaborate with shared Zeppelin instances. Below is a list of future additions that will probably be included in a future release. Of course we can't give any guarantees :-)
+Below is a list of future additions that will probably be included in a future release. Of course we can't give any guarantees :-)
 
 * Usability improvements (only show creatable instances, allow adding GPUs to the instance, etc.)
 * Check available resources in the cluster before trying to start a notebook to avoid that instances get stuck in staging
 * Allow integration with dynamically scaling the DC/OS cluster by providing an interface that can be implemented to interact with the scaling mechanism used by your team. 
 * Support for managing JupyterLab instances
-* Cost reporting
