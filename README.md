@@ -1,5 +1,5 @@
 # END OF LIFE
-This project is not being maintened anymore.
+This project is not being maintained anymore.
 
 <p align="center"><img src="img/airfield_logo.png" alt="Airfield" width="128"></p>
 
