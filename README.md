@@ -1,3 +1,6 @@
+# END OF LIFE
+This project is not being maintened anymore.
+
 <p align="center"><img src="img/airfield_logo.png" alt="Airfield" width="128"></p>
 
 <h1 align="center">Airfield</h1>
